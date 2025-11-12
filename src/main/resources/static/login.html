@@ -32,8 +32,7 @@
             background: white;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
+            width: 500px;
             overflow: hidden;
         }
 
@@ -146,7 +145,7 @@
 
                         try {
                             // 发送登录请求
-                            const response = await fetch('/api/auth/login', {
+                            const response = await fetch('/auth/login', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json'
@@ -168,13 +167,13 @@
                                 }
 
                                 ElMessage.success('登录成功！');
-                                
+
                                 // 创建一个XMLHttpRequest对象并设置Authorization头进行跳转
                                 // 这样可以确保跳转请求中携带token，通过JWT拦截器的验证
                                 const xhr = new XMLHttpRequest();
                                 xhr.open('GET', 'index.html', true);
                                 xhr.setRequestHeader('Authorization', 'Bearer ' + data.data.token);
-                                xhr.onload = () =>{
+                                xhr.onload = () => {
                                     if (xhr.status === 200) {
                                         window.location.href = 'index.html';
                                     } else {

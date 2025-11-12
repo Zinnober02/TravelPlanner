@@ -1,11 +1,347 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>旅行规划系统 - 首页</title>
+    <!-- 引入Vue3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入Element Plus -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- 引入Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- 引入Element Plus图标 -->
+    <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #303133;
+        }
+
+        .plan-card {
+            transition: all 0.3s ease;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .plan-date {
+            color: #606266;
+            font-size: 14px;
+            margin-right: 20px;
+        }
+
+        .plan-destination {
+            color: #67c23a;
+            font-weight: 500;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Hello World</h1>
+    <div id="app">
+        <div class="container">
+            <!-- 顶部导航 -->
+            <div class="header">
+                <h1>我的旅行规划</h1>
+                <el-button type="primary" @click="showCreatePlanDialog = true">
+                    <el-icon>
+                        <plus />
+                    </el-icon>
+                    新建规划
+                </el-button>
+            </div>
+
+            <!-- 规划列表 -->
+            <div v-if="loading" class="loading-container">
+                <el-skeleton :rows="3" animated />
+            </div>
+            <div v-else-if="plans.length > 0" class="plans-list">
+                <el-card v-for="plan in plans" :key="plan.id" class="plan-card mb-4 cursor-pointer"
+                    @click="goToDetail(plan.id)">
+                    <template #header>
+                        <div class="card-header">
+                            <span class="text-xl font-bold">{{ plan.title }}</span>
+                        </div>
+                    </template>
+                    <div class="card-body">
+                        <div class="plan-info mb-3">
+                            <span class="plan-date">
+                                {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}
+                            </span>
+                            <span class="plan-destination">{{ plan.destination }}</span>
+                        </div>
+                        <div class="plan-meta">
+                            <el-tag size="small">{{ plan.peopleCount }}人</el-tag>
+                            <el-tag size="small" type="info" v-if="plan.budget > 0">
+                                预算: ¥{{ plan.budget }}
+                            </el-tag>
+                            <el-tag size="small" :type="getStatusType(plan.status)">
+                                {{ getStatusText(plan.status) }}
+                            </el-tag>
+                        </div>
+                    </div>
+                    <template #footer>
+                        <div class="card-footer">
+                            <span class="text-sm text-gray-500">
+                                创建时间: {{ formatDateTime(plan.createdAt) }}
+                            </span>
+                        </div>
+                    </template>
+                </el-card>
+            </div>
+            <div v-else class="no-plans">
+                <el-empty description="暂无旅行规划" />
+                <el-button type="primary" class="mt-4" @click="showCreatePlanDialog = true">
+                    <el-icon>
+                        <plus />
+                    </el-icon>
+                    立即创建
+                </el-button>
+            </div>
+        </div>
+
+        <!-- 新建规划弹窗 -->
+        <el-dialog v-model="showCreatePlanDialog" title="新建旅行规划" width="50%">
+            <el-form ref="createPlanForm" :model="createPlanForm" label-width="100px">
+                <el-form-item label="规划标题" prop="title" required>
+                    <el-input v-model="createPlanForm.title" placeholder="请输入规划标题" />
+                </el-form-item>
+                <el-form-item label="目的地" prop="destination" required>
+                    <el-input v-model="createPlanForm.destination" placeholder="请输入目的地" />
+                </el-form-item>
+                <el-form-item label="开始日期" prop="startDate" required>
+                    <el-date-picker v-model="createPlanForm.startDate" type="date" placeholder="选择开始日期"
+                        style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="结束日期" prop="endDate" required>
+                    <el-date-picker v-model="createPlanForm.endDate" type="date" placeholder="选择结束日期"
+                        style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="同行人数" prop="peopleCount">
+                    <el-input-number v-model="createPlanForm.peopleCount" :min="1" :max="20" />
+                </el-form-item>
+                <el-form-item label="预算金额" prop="budget">
+                    <el-input-number v-model="createPlanForm.budget" :min="0" :step="100" />
+                </el-form-item>
+                <el-form-item label="旅行偏好" prop="preferences">
+                    <el-input v-model="createPlanForm.preferences" type="textarea"
+                        placeholder="请输入旅行偏好，如：喜欢美食、历史文化、自然风光等" :rows="3" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="showCreatePlanDialog = false">取消</el-button>
+                    <el-button type="primary" @click="createPlan">确定</el-button>
+                </span>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+        const { ElMessage } = ElementPlus
+
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    plans: [],
+                    showCreatePlanDialog: false,
+                    createPlanForm: {
+                        title: '',
+                        destination: '',
+                        startDate: '',
+                        endDate: '',
+                        peopleCount: 1,
+                        budget: 0,
+                        preferences: ''
+                    }
+                }
+            },
+            mounted() {
+                // 页面加载时获取用户规划列表
+                this.fetchPlans()
+            },
+            methods: {
+                // 获取用户规划列表
+                async fetchPlans() {
+                    this.loading = true
+                    try {
+                        const token = localStorage.getItem('token')
+                        const response = await axios.get('/api/travel-plans', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        })
+
+                        if (response.data.code === 0) {
+                            this.plans = response.data.data
+                        } else {
+                            ElMessage.error(response.data.message || '获取规划列表失败')
+                            // 如果后端API未实现，使用模拟数据
+                            this.useMockData()
+                        }
+                    } catch (error) {
+                        console.error('获取规划列表失败:', error)
+                        ElMessage.error('获取规划列表失败，请稍后重试')
+                        // 使用模拟数据
+                        this.useMockData()
+                    } finally {
+                        this.loading = false
+                    }
+                },
+
+                // 使用模拟数据
+                useMockData() {
+                    this.plans = [
+                        {
+                            id: '1',
+                            title: '日本东京5日游',
+                            destination: '东京',
+                            startDate: '2024-10-01',
+                            endDate: '2024-10-05',
+                            peopleCount: 2,
+                            budget: 10000,
+                            status: 'draft',
+                            createdAt: '2024-09-01T10:00:00'
+                        },
+                        {
+                            id: '2',
+                            title: '上海周末游',
+                            destination: '上海',
+                            startDate: '2024-09-21',
+                            endDate: '2024-09-22',
+                            peopleCount: 1,
+                            budget: 2000,
+                            status: 'published',
+                            createdAt: '2024-09-10T15:30:00'
+                        },
+                        {
+                            id: '3',
+                            title: '北京文化之旅',
+                            destination: '北京',
+                            startDate: '2024-11-05',
+                            endDate: '2024-11-09',
+                            peopleCount: 3,
+                            budget: 8000,
+                            status: 'draft',
+                            createdAt: '2024-09-15T09:15:00'
+                        }
+                    ]
+                },
+
+                // 跳转到规划详情页
+                goToDetail(planId) {
+                    window.location.href = `detail.html?id=${planId}`
+                },
+
+                // 创建新规划
+                async createPlan() {
+                    // 表单验证
+                    if (!this.createPlanForm.title || !this.createPlanForm.destination) {
+                        ElMessage.warning('请填写必填项')
+                        return
+                    }
+
+                    if (this.createPlanForm.startDate && this.createPlanForm.endDate &&
+                        new Date(this.createPlanForm.startDate) > new Date(this.createPlanForm.endDate)) {
+                        ElMessage.warning('开始日期不能晚于结束日期')
+                        return
+                    }
+
+                    try {
+                        const token = localStorage.getItem('token')
+                        const response = await axios.post('/api/travel-plans', this.createPlanForm, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        })
+
+                        if (response.data.code === 0) {
+                            ElMessage.success('创建规划成功')
+                            this.showCreatePlanDialog = false
+                            // 刷新规划列表
+                            this.fetchPlans()
+                            // 跳转到新建规划的详情页
+                            this.goToDetail(response.data.data.id)
+                        } else {
+                            ElMessage.error(response.data.message || '创建规划失败')
+                        }
+                    } catch (error) {
+                        console.error('创建规划失败:', error)
+                        ElMessage.error('创建规划失败，请稍后重试')
+                        // 模拟创建成功，跳转到模拟ID的详情页
+                        this.showCreatePlanDialog = false
+                        ElMessage.success('创建规划成功（模拟）')
+                        this.goToDetail('new-plan-id')
+                    }
+                },
+
+                // 格式化日期
+                formatDate(dateString) {
+                    if (!dateString) return ''
+                    const date = new Date(dateString)
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                },
+
+                // 格式化日期时间
+                formatDateTime(dateTimeString) {
+                    if (!dateTimeString) return ''
+                    const date = new Date(dateTimeString)
+                    return `${this.formatDate(dateTimeString)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+                },
+
+                // 获取状态样式
+                getStatusType(status) {
+                    const statusMap = {
+                        'draft': 'warning',
+                        'published': 'success',
+                        'archived': 'info'
+                    }
+                    return statusMap[status] || 'default'
+                },
+
+                // 获取状态文本
+                getStatusText(status) {
+                    const statusMap = {
+                        'draft': '草稿',
+                        'published': '已发布',
+                        'archived': '已归档'
+                    }
+                    return statusMap[status] || status
+                }
+            }
+        }).use(ElementPlus).mount('#app')
+    </script>
 </body>
+
 </html>
