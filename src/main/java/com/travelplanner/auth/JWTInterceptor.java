@@ -1,5 +1,6 @@
 package com.travelplanner.auth;
 
+import com.travelplanner.common.UserContext;
 import com.travelplanner.exception.BusinessException;
 import com.travelplanner.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +31,12 @@ public class JWTInterceptor implements HandlerInterceptor {
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
             "/auth/register",
             "/auth/login",
-            "/static/register.html",
-            "/static/login.html",
+            "/static/css/**",  // 只排除CSS资源
+            "/static/js/**",   // 只排除JS资源
+            "/static/images/**", // 只排除图片资源
             "/register.html",
             "/login.html"
+            // 不再排除index.html和detail.html，这些页面需要JWT验证
     );
 
     @Override
@@ -73,13 +76,13 @@ public class JWTInterceptor implements HandlerInterceptor {
 
         return true;
     }
-
+    
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        // 请求完成后清除用户上下文，防止内存泄漏
+        // 清理用户上下文信息，避免ThreadLocal内存泄漏
         UserContext.clear();
+        log.debug("请求完成，清理用户上下文");
     }
-
     /**
      * 从请求头提取token
      */

@@ -31,10 +31,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/register",
                         "/auth/login",
-                        "/static/register.html",
-                        "/static/login.html",
+                        "/static/css/**",  // 只排除CSS资源
+                        "/static/js/**",   // 只排除JS资源
+                        "/static/images/**", // 只排除图片资源
                         "/register.html",
                         "/login.html"
+                        // 不再排除index.html和detail.html，这些页面需要JWT验证
                 );  // 排除不需要拦截的路径
     }
 
