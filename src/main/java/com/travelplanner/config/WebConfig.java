@@ -31,11 +31,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/register",
                         "/auth/login",
-                        "/public/**",
-                        "/error",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/static/**",
+                        "/static/register.html",
+                        "/static/login.html",
                         "/register.html",
                         "/login.html"
                 );  // 排除不需要拦截的路径

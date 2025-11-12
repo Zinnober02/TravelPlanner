@@ -30,11 +30,8 @@ public class JWTInterceptor implements HandlerInterceptor {
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
             "/auth/register",
             "/auth/login",
-            "/public/**",
-            "/error",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/static/**",
+            "/static/register.html",
+            "/static/login.html",
             "/register.html",
             "/login.html"
     );

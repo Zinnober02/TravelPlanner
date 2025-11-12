@@ -33,12 +33,12 @@ java -jar target/travel-planner-1.0.0.jar
 ### 访问地址
 应用启动后，可以通过以下地址访问：
 
-**基础URL**: http://localhost:8080/api/login.html
+**基础URL**: http://localhost:8080/login.html
 
 ### API端点示例
 
-- 用户注册: POST http://localhost:8080/api/auth/register
-- 用户登录: POST http://localhost:8080/api/auth/login
+- 用户注册: POST http://localhost:8080/auth/register
+- 用户登录: POST http://localhost:8080/auth/login
 - 获取用户信息: GET http://localhost:8080/api/users/me (需要JWT认证)
 
 ## 项目结构
