@@ -36,7 +36,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/static/images/**", // 只排除图片资源
                         "/register.html",
                         "/login.html"
-                        // 不再排除index.html和detail.html，这些页面需要JWT验证
                 );  // 排除不需要拦截的路径
     }
 
