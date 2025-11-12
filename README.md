@@ -7,7 +7,7 @@
 ### 环境要求
 - Java 17+
 - Maven 3.6+
-- PostgreSQL 12+
+- PostgreSQL 14+
 
 ### 安装和运行
 
@@ -33,7 +33,7 @@ java -jar target/travel-planner-1.0.0.jar
 ### 访问地址
 应用启动后，可以通过以下地址访问：
 
-**基础URL**: http://localhost:8080/api
+**基础URL**: http://localhost:8080/api/login.html
 
 ### API端点示例
 
@@ -55,7 +55,7 @@ src/
 
 ## 技术栈
 
-- Spring Boot 3.x
+- Spring Boot 3.5.7
 - Spring Security
 - Spring Data JPA
 - PostgreSQL
