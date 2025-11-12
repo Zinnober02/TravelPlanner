@@ -259,9 +259,36 @@
                     ]
                 },
 
-                // 跳转到规划详情页
+                // 跳转到规划详情页，先验证token有效性
                 goToDetail(planId) {
-                    window.location.href = `detail.html?id=${planId}`
+                    const token = localStorage.getItem('token');
+                    
+                    // 如果没有token，直接跳转到登录页
+                    if (!token) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    // 发送带token的请求到detail.html进行验证
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', `detail.html?id=${planId}`, true);
+                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                    
+                    xhr.onreadystatechange = () => {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                // 验证通过，执行页面跳转
+                                window.location.href = `detail.html?id=${planId}`;
+                            } else {
+                                // 验证失败，清除token并跳转到登录页
+                                console.error('Token验证失败，状态码:', xhr.status);
+                                localStorage.removeItem('token');
+                                window.location.href = 'login.html';
+                            }
+                        }
+                    };
+                    
+                    xhr.send();
                 },
 
                 // 创建新规划
