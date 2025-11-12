@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行规划详情</title>
+    <!-- 引入Vue3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入Element Plus -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- 引入Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- 引入Element Plus图标 -->
+    <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .plan-title {
+            margin: 0;
+            color: #303133;
+        }
+
+        .plan-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .plan-info {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .day-section {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-item {
+            padding: 15px;
+            border-left: 3px solid #409eff;
+            margin-bottom: 15px;
+            background-color: #f4f4f5;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .activity-time {
+            color: #606266;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .activity-description {
+            color: #606266;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <!-- 顶部导航 -->
+            <div class="header">
+                <div>
+                    <el-button type="primary" @click="goBack">
+                        <el-icon><arrow-left /></el-icon>
+                        返回列表
+                    </el-button>
+                </div>
+            </div>
+
+            <!-- 规划详情 -->
+            <div v-if="loading" class="loading-container">
+                <el-skeleton :rows="6" animated />
+            </div>
+            <div v-else-if="plan" class="plan-content">
+                <!-- 规划基本信息 -->
+                <div class="plan-info">
+                    <div class="plan-header">
+                        <h1 class="plan-title">{{ plan.title }}</h1>
+                        <el-tag :type="getStatusType(plan.status)">
+                            {{ getStatusText(plan.status) }}
+                        </el-tag>
+                    </div>
+
+                    <div class="plan-meta">
+                        <el-tag size="large" type="success">{{ plan.destination }}</el-tag>
+                        <el-tag size="large">{{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}</el-tag>
+                        <el-tag size="large">{{ plan.peopleCount }}人</el-tag>
+                        <el-tag size="large" type="info" v-if="plan.budget > 0">预算: ¥{{ plan.budget }}</el-tag>
+                    </div>
+
+                    <div v-if="plan.preferences" class="plan-preferences">
+                        <h3>旅行偏好</h3>
+                        <p>{{ plan.preferences }}</p>
+                    </div>
+                </div>
+
+                <!-- 行程安排（模拟数据） -->
+                <div class="itinerary-section">
+                    <h2>行程安排</h2>
+
+                    <!-- 第1天 -->
+                    <div class="day-section">
+                        <h3>第1天</h3>
+                        <div class="activity-item">
+                            <div class="activity-time">09:00 - 10:30</div>
+                            <div class="activity-title">抵达目的地</div>
+                            <div class="activity-description">抵达{{ plan.destination }}，办理入住手续</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-time">12:00 - 14:00</div>
+                            <div class="activity-title">午餐</div>
+                            <div class="activity-description">品尝当地特色美食</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-time">15:00 - 17:00</div>
+                            <div class="activity-title">城市游览</div>
+                            <div class="activity-description">参观城市中心，了解当地文化</div>
+                        </div>
+                    </div>
+
+                    <!-- 第2天 -->
+                    <div class="day-section">
+                        <h3>第2天</h3>
+                        <div class="activity-item">
+                            <div class="activity-time">08:30 - 11:30</div>
+                            <div class="activity-title">主要景点游览</div>
+                            <div class="activity-description">参观当地著名景点</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-time">14:00 - 16:00</div>
+                            <div class="activity-title">购物体验</div>
+                            <div class="activity-description">前往当地特色商业街</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="no-plan">
+                <el-empty description="未找到规划信息" />
+                <el-button type="primary" class="mt-4" @click="goBack">返回列表</el-button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+        const { ElMessage } = ElementPlus
+
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    planId: '',
+                    plan: null
+                }
+            },
+            mounted() {
+                // 获取URL中的规划ID
+                this.planId = new URLSearchParams(window.location.search).get('id')
+                if (this.planId) {
+                    this.fetchPlanDetail()
+                }
+            },
+            methods: {
+                // 获取规划详情
+                async fetchPlanDetail() {
+                    this.loading = true
+                    try {
+                        const token = localStorage.getItem('token')
+                        const response = await axios.get(`/api/travel-plans/${this.planId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        })
+
+                        if (response.data.code === 0) {
+                            this.plan = response.data.data
+                        } else {
+                            ElMessage.error(response.data.message || '获取规划详情失败')
+                            // 使用模拟数据
+                            this.useMockData()
+                        }
+                    } catch (error) {
+                        console.error('获取规划详情失败:', error)
+                        ElMessage.error('获取规划详情失败，请稍后重试')
+                        // 使用模拟数据
+                        this.useMockData()
+                    } finally {
+                        this.loading = false
+                    }
+                },
+
+                // 使用模拟数据
+                useMockData() {
+                    this.plan = {
+                        id: this.planId,
+                        title: this.planId === 'new-plan-id' ? '新建旅行规划' : '日本东京5日游',
+                        destination: '东京',
+                        startDate: '2024-10-01',
+                        endDate: '2024-10-05',
+                        peopleCount: 2,
+                        budget: 10000,
+                        preferences: '喜欢美食、历史文化景点和购物',
+                        status: 'draft',
+                        createdAt: '2024-09-01T10:00:00',
+                        updatedAt: '2024-09-01T10:00:00'
+                    }
+                },
+
+                // 返回列表页
+                goBack() {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', 'index.html', true);
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token'));
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            window.location.href = 'index.html';
+                        } else {
+                            ElMessage.error('授权失败，请重新登录');
+                            localStorage.removeItem('token');
+                        }
+                    };
+                    xhr.onerror = () => {
+                        ElMessage.error('网络错误，请稍后重试');
+                    };
+                    xhr.send();
+                },
+
+                // 格式化日期
+                formatDate(dateString) {
+                    if (!dateString) return ''
+                    const date = new Date(dateString)
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                },
+
+                // 获取状态样式
+                getStatusType(status) {
+                    const statusMap = {
+                        'draft': 'warning',
+                        'published': 'success',
+                        'archived': 'info'
+                    }
+                    return statusMap[status] || 'default'
+                },
+
+                // 获取状态文本
+                getStatusText(status) {
+                    const statusMap = {
+                        'draft': '草稿',
+                        'published': '已发布',
+                        'archived': '已归档'
+                    }
+                    return statusMap[status] || status
+                }
+            }
+        }).use(ElementPlus).mount('#app')
+    </script>
+</body>
+
+</html>
