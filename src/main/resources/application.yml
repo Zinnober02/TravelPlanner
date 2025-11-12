@@ -1,0 +1,67 @@
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    session:
+      timeout: 86400s
+
+# Spring配置
+spring:
+  application:
+    name: travel-planner
+  main:
+    allow-bean-definition-overriding: true
+  # 静态资源配置
+  web:
+    resources:
+      static-locations: classpath:/static/
+  # Spring MVC配置
+  mvc:
+    static-path-pattern: /**
+  # 数据库配置
+  datasource:
+    url: jdbc:postgresql://rm-cn-u1p4isuws00055vo.rwlb.rds.aliyuncs.com:5432/travel_planner
+    username: dms_user_f928f10
+    password: User123456
+    driver-class-name: org.postgresql.Driver
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update  # 生产环境应改为validate
+    show-sql: true
+    properties:
+      hibernate:
+        '[format_sql]': true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.travelplanner: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 应用自定义配置
+# 阿里云百炼AI配置
+alibaba:
+  dashscope:
+    api-key: sk-c41e49014a8c4e7ba511f4a9c3a3999d
+
+# 科大讯飞语音识别配置
+iflytek:
+  app-id: your-iflytek-app-id
+  api-key: your-iflytek-api-key
+  api-secret: your-iflytek-api-secret
+
+# 地图服务配置
+map:
+  service: gaode  # 或 baidu
+  api-key: your-map-api-key
+
+# 用户认证配置
+auth:
+  token-header: Authorization
+  token-prefix: "Bearer "
+  token-expire: 86400000

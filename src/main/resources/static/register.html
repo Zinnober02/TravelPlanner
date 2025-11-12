@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行规划平台 - 注册</title>
+    <!-- 引入Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- 引入Element Plus JS -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .register-header {
+            background: #4a5568;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .register-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .register-body {
+            padding: 30px;
+        }
+
+        .el-form-item {
+            margin-bottom: 24px;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="register-container">
+            <div class="register-header">
+                <h2>旅行规划平台</h2>
+            </div>
+            <div class="register-body">
+                <el-form ref="registerFormRef" :model="registerForm" :rules="rules" label-position="top"
+                    label-width="80px">
+                    <el-form-item label="用户名" prop="username">
+                        <el-input v-model="registerForm.username" placeholder="请输入用户名（3-20个字符）" clearable
+                            :disabled="loading" />
+                    </el-form-item>
+
+                    <el-form-item label="密码" prop="password">
+                        <el-input v-model="registerForm.password" type="password" placeholder="请输入密码（至少6位）"
+                            show-password :disabled="loading" />
+                    </el-form-item>
+
+                    <el-form-item label="确认密码" prop="confirmPassword">
+                        <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码"
+                            show-password :disabled="loading" />
+                    </el-form-item>
+
+                    <el-form-item label="邮箱" prop="email">
+                        <el-input v-model="registerForm.email" type="email" placeholder="请输入邮箱" clearable
+                            :disabled="loading" />
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" :loading="loading" @click="handleRegister" style="width: 100%">
+                            注册
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+
+                <div class="login-link">
+                    已有账号？<a href="login.html">立即登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const { ElMessage } = ElementPlus;
+
+        createApp({
+            setup() {
+                // 表单数据
+                const registerForm = reactive({
+                    username: '',
+                    password: '',
+                    confirmPassword: '',
+                    email: ''
+                });
+
+                // 表单引用
+                const registerFormRef = ref(null);
+
+                // 加载状态
+                const loading = ref(false);
+
+                // 密码强度检查
+                const validatePasswordStrength = (rule, value, callback) => {
+                    if (!value) {
+                        callback(new Error('请输入密码'));
+                    } else if (value.length < 6) {
+                        callback(new Error('密码长度至少为6位'));
+                    } else {
+                        callback();
+                    }
+                };
+
+                // 确认密码验证
+                const validateConfirmPassword = (rule, value, callback) => {
+                    if (!value) {
+                        callback(new Error('请确认密码'));
+                    } else if (value !== registerForm.password) {
+                        callback(new Error('两次输入的密码不一致'));
+                    } else {
+                        callback();
+                    }
+                };
+
+                // 表单验证规则
+                const rules = {
+                    username: [
+                        { required: true, message: '用户名不能为空', trigger: 'blur' },
+                        { min: 3, max: 20, message: '用户名长度应为3-20个字符', trigger: 'blur' }
+                    ],
+                    password: [
+                        { required: true, validator: validatePasswordStrength, trigger: 'blur' }
+                    ],
+                    confirmPassword: [
+                        { required: true, validator: validateConfirmPassword, trigger: 'blur' }
+                    ],
+                    email: [
+                        { required: true, message: '邮箱不能为空', trigger: 'blur' },
+                        { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+                    ]
+                };
+
+                // 处理注册
+                const handleRegister = async () => {
+                    // 验证表单
+                    registerFormRef.value.validate(async (valid) => {
+                        if (!valid) {
+                            return;
+                        }
+
+                        // 设置加载状态
+                        loading.value = true;
+
+                        try {
+                            // 发送注册请求
+                            const response = await fetch('/api/auth/register', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(registerForm)
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('网络响应错误');
+                            }
+
+                            const data = await response.json();
+
+                            // 处理响应
+                            if (data.success) {
+                                // 注册成功，显示提示信息
+                                ElMessage.success('注册成功！即将跳转到登录页面...');
+
+                                // 2秒后跳转到登录页面
+                                setTimeout(() => {
+                                    window.location.href = 'login.html';
+                                }, 2000);
+                            } else {
+                                // 注册失败
+                                ElMessage.error(data.message || '注册失败，请重试');
+                            }
+                        } catch (error) {
+                            console.error('注册错误:', error);
+                            ElMessage.error('注册出错，请稍后重试');
+                        } finally {
+                            // 隐藏加载状态
+                            loading.value = false;
+                        }
+                    });
+                };
+
+                // 返回给模板的数据和方法
+                return {
+                    registerForm,
+                    registerFormRef,
+                    loading,
+                    rules,
+                    handleRegister
+                };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>
