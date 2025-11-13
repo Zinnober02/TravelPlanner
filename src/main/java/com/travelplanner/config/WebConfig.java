@@ -34,8 +34,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/static/css/**",  // 只排除CSS资源
                         "/static/js/**",   // 只排除JS资源
                         "/static/images/**", // 只排除图片资源
-                        "/register.html",
-                        "/login.html"
+                        "/static/register.html",
+                        "/static/login.html"
                 );  // 排除不需要拦截的路径
     }
 
