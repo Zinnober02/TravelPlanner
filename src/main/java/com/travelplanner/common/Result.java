@@ -1,6 +1,6 @@
 package com.travelplanner.common;
 
-import com.travelplanner.exception.ErrorCode;
+import com.travelplanner.exception.StateCode;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -51,15 +51,15 @@ public class Result<T> implements Serializable {
      * 成功响应
      */
     public static <T> Result<T> success() {
-        return new Result<>(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMessage());
+        return new Result<>(StateCode.SUCCESS.getCode(), StateCode.SUCCESS.getMessage());
     }
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMessage(), data);
+        return new Result<>(StateCode.SUCCESS.getCode(), StateCode.SUCCESS.getMessage(), data);
     }
 
     public static <T> Result<T> success(String message, T data) {
-        return new Result<>(ErrorCode.SUCCESS.getCode(), message, data);
+        return new Result<>(StateCode.SUCCESS.getCode(), message, data);
     }
 
     /**
@@ -69,11 +69,11 @@ public class Result<T> implements Serializable {
         return new Result<>(code, message);
     }
 
-    public static <T> Result<T> error(ErrorCode errorCode) {
+    public static <T> Result<T> error(StateCode errorCode) {
         return new Result<>(errorCode.getCode(), errorCode.getMessage());
     }
 
-    public static <T> Result<T> error(ErrorCode errorCode, String message) {
+    public static <T> Result<T> error(StateCode errorCode, String message) {
         return new Result<>(errorCode.getCode(), message);
     }
 
@@ -81,6 +81,6 @@ public class Result<T> implements Serializable {
      * 判断是否成功
      */
     public boolean isSuccess() {
-        return this.code == ErrorCode.SUCCESS.getCode();
+        return this.code == StateCode.SUCCESS.getCode();
     }
 }

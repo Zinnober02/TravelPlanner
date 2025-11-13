@@ -7,7 +7,7 @@ import lombok.Getter;
  * 定义系统中的标准错误码
  */
 @Getter
-public enum ErrorCode {
+public enum StateCode {
 
     // 通用错误码
     SUCCESS(0, "success"),
@@ -50,7 +50,7 @@ public enum ErrorCode {
     private final int code;
     private final String message;
     
-    ErrorCode(int code, String message) {
+    StateCode(int code, String message) {
         this.code = code;
         this.message = message;
     }
