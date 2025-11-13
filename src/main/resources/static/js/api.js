@@ -26,32 +26,20 @@ api.interceptors.response.use(
   response => {
     // 检查业务是否成功
     if (response.data && response.data.code != 0) {
-      // 业务失败，显示错误信息
-      window.ElementPlus.ElMessage.error(response.data.message || '请求失败')
       return Promise.reject(response.data)
     }
     // 业务成功，直接返回数据部分，方便调用者使用
     return response.data.data
   },
   error => {
-    if (error.response) {
+    if (error.response && error.response.status === 401) {
       // 处理HTTP状态码错误
-      if (error.response.status === 401) {
-        window.ElementPlus.ElMessage.error('未登录，请先登录')
-        localStorage.removeItem('token')
-        window.location.href = 'login.html'
-      } else {
-        // 其他HTTP错误，使用后端返回的错误信息或者默认提示
-        window.ElementPlus.ElMessage.error(error.response.data.message || '请求失败')
-      }
-    } else if (error.request) {
-      // 请求发出但没有收到响应
-      window.ElementPlus.ElMessage.error('网络请求失败，请检查网络连接')
+      window.ElementPlus.ElMessage.error('未登录，请先登录')
+      localStorage.removeItem('token')
+      window.location.href = 'login.html'
     } else {
-      // 请求配置错误
-      window.ElementPlus.ElMessage.error('请求配置错误')
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
   }
 )
 
