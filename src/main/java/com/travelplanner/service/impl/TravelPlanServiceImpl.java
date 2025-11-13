@@ -4,12 +4,10 @@ import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.common.Message;
-import com.alibaba.dashscope.common.Role;
 import com.alibaba.dashscope.exception.ApiException;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.utils.Constants;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelplanner.dto.CreateTravelPlanRequest;
 import com.travelplanner.dto.TravelPlanDTO;
 import com.travelplanner.dto.UpdateTravelPlanRequest;
@@ -33,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -58,6 +57,8 @@ public class TravelPlanServiceImpl implements TravelPlanService {
     public TravelPlanDTO createTravelPlan(UUID userId, CreateTravelPlanRequest request) {
         TravelPlan travelPlan = new TravelPlan();
         BeanUtils.copyProperties(request, travelPlan);
+
+        log.info("创建旅行计划, 用户ID: {}, 请求内容: {}", userId, request);
         
         // 设置用户信息
         User user = new User();
@@ -114,7 +115,6 @@ public class TravelPlanServiceImpl implements TravelPlanService {
             if (planJson.startsWith("```json") && planJson.endsWith("```")) {
                 planJson = planJson.substring(7, planJson.length() - 3).trim();
             }
-            log.info("Qwen-flash生成的规划: {}", planJson);
             return planJson;
         } catch (ApiException | InputRequiredException | NoApiKeyException e) {
             // 如果调用AI失败，打印错误日志并返回默认的空规划
@@ -195,12 +195,14 @@ public class TravelPlanServiceImpl implements TravelPlanService {
     
     @Override
     public List<TravelPlanDTO> getUserTravelPlans(UUID userId) {
+        log.info("获取用户ID为 {} 的所有旅行计划", userId);
         List<TravelPlan> plans = travelPlanRepository.findByUserId(userId);
         return plans.stream().map(this::convertToDTO).toList();
     }
     
     @Override
     public TravelPlanDTO getTravelPlanById(UUID userId, UUID planId) {
+        log.info("获取旅行计划ID为 {} 的详情", planId);
         TravelPlan plan = travelPlanRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("旅行计划不存在"));
         
@@ -222,12 +224,83 @@ public class TravelPlanServiceImpl implements TravelPlanService {
         if (!plan.getUser().getId().equals(userId)) {
             throw new RuntimeException("无权修改该旅行计划");
         }
+
+        // 检查是否已归档
+        if ("archived".equals(plan.getStatus())) {
+            throw new RuntimeException("已归档的旅行计划无法修改");
+        }
+
+        log.info("更新旅行计划: {}, 请求内容: {}", plan.getTitle(), request);
+        
+        // 检查是否有实际字段变化
+        boolean aiFieldsChanged = false;
+        
+        // 比较字符串类型字段
+        if (!Objects.equals(request.getTitle(), plan.getTitle())) {
+            aiFieldsChanged = true;
+        }
+        if (!Objects.equals(request.getDestination(), plan.getDestination())) {
+            aiFieldsChanged = true;
+        }
+        if (!Objects.equals(request.getPreferences(), plan.getPreferences())) {
+            aiFieldsChanged = true;
+        }
+        // 比较日期类型字段
+        if (!Objects.equals(request.getStartDate(), plan.getStartDate())) {
+            aiFieldsChanged = true;
+        }
+        if (!Objects.equals(request.getEndDate(), plan.getEndDate())) {
+            aiFieldsChanged = true;
+        }
+        // 比较整数类型字段
+        if (!Objects.equals(request.getPeopleCount(), plan.getPeopleCount())) {
+            aiFieldsChanged = true;
+        }
+        // 比较BigDecimal类型字段，使用compareTo避免精度问题
+        if (request.getBudget() != null && plan.getBudget() != null) {
+            if (request.getBudget().compareTo(plan.getBudget()) != 0) {
+                aiFieldsChanged = true;
+            }
+        } else if (request.getBudget() != plan.getBudget()) {
+            aiFieldsChanged = true;
+        }
+        boolean hasChanges = false;
+
+        if (!Objects.equals(request.getStatus(), plan.getStatus())) {
+            hasChanges = true;
+        }
+        
+        // 如果没有任何变化，直接返回
+        if (!hasChanges && !aiFieldsChanged) {
+            throw new RuntimeException("旅行计划未发生任何变化，无需更新");
+        }
         
         // 更新属性
         BeanUtils.copyProperties(request, plan);
         
         // 保存更新
         TravelPlan updatedPlan = travelPlanRepository.save(plan);
+        
+        // 仅当AI相关字段变化时重新生成行程
+        if (aiFieldsChanged) {
+            log.info("旅行计划ID: {} 有AI相关字段变化，需要重新生成行程", updatedPlan.getId());
+            // 基于更新后的计划重新生成AI行程
+            CreateTravelPlanRequest aiRequest = new CreateTravelPlanRequest();
+            BeanUtils.copyProperties(updatedPlan, aiRequest);
+            
+            // 调用AI生成新的行程
+            String newPlanJson = generateTravelPlanWithAI(aiRequest);
+            
+            // 更新planJson字段
+            updatedPlan.setPlanJson(newPlanJson);
+            
+            // 保存更新后的planJson
+            updatedPlan = travelPlanRepository.save(updatedPlan);
+
+            log.info("旅行计划ID: {} 已更新", updatedPlan.getId());
+        } else {
+            log.info("旅行计划ID: {} 已更新, AI相关字段未变化，无需重新生成行程", updatedPlan.getId());
+        }
         
         return convertToDTO(updatedPlan);
     }
@@ -242,6 +315,8 @@ public class TravelPlanServiceImpl implements TravelPlanService {
         if (!plan.getUser().getId().equals(userId)) {
             throw new RuntimeException("无权删除该旅行计划");
         }
+        
+        log.info("删除旅行计划ID: {}", plan.getId());
         
         // 级联删除行程详情和费用记录
         planDetailRepository.deleteByTravelPlanId(planId);

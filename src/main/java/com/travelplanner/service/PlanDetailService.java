@@ -1,7 +1,6 @@
 package com.travelplanner.service;
 
 import com.travelplanner.dto.PlanDetailDTO;
-import com.travelplanner.model.PlanDetail;
 
 import java.util.List;
 import java.util.UUID;

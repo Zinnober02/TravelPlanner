@@ -6,20 +6,22 @@ import com.travelplanner.dto.AuthResponse;
 import com.travelplanner.dto.LoginRequest;
 import com.travelplanner.dto.RegisterRequest;
 import com.travelplanner.exception.BusinessException;
-import com.travelplanner.exception.ErrorCode;
+import com.travelplanner.exception.StateCode;
 import com.travelplanner.model.User;
 import com.travelplanner.repository.UserRepository;
 import com.travelplanner.service.UserService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 /**
  * 用户服务实现类
  */
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -37,18 +39,20 @@ public class UserServiceImpl implements UserService {
     public AuthResponse register(RegisterRequest registerRequest) {
         // 检查用户名是否已存在
         if (existsByUsername(registerRequest.getUsername())) {
-            throw new BusinessException(ErrorCode.USERNAME_EXISTS);
+            throw new BusinessException(StateCode.USERNAME_EXISTS);
         }
 
         // 检查邮箱是否已存在
         if (existsByEmail(registerRequest.getEmail())) {
-            throw new BusinessException(ErrorCode.EMAIL_EXISTS);
+            throw new BusinessException(StateCode.EMAIL_EXISTS);
         }
 
         // 检查密码是否一致
         if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "两次输入的密码不一致");
+            throw new BusinessException(StateCode.PARAM_ERROR.getCode(), "两次输入的密码不一致");
         }
+
+        log.info("注册用户: {}", registerRequest.getUsername());
 
         AuthResponse response = new AuthResponse();
 
@@ -83,8 +87,10 @@ public class UserServiceImpl implements UserService {
 
         // 检查用户是否存在且密码是否正确
         if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new BusinessException(ErrorCode.LOGIN_FAILED);
+            throw new BusinessException(StateCode.LOGIN_FAILED);
         }
+
+        log.info("用户登录: {}", user.getUsername());
 
         AuthResponse response = new AuthResponse();
 
