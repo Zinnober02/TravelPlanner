@@ -12,8 +12,6 @@
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
     <!-- 引入Axios -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!-- 引入Element Plus图标 -->
-    <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
     <style>
         body {
             margin: 0;
@@ -48,6 +46,12 @@
             transition: all 0.3s ease;
         }
 
+        .plans-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
         .plan-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -74,7 +78,7 @@
                 <h1>我的旅行规划</h1>
                 <el-button type="primary" @click="showCreatePlanDialog = true">
                     <el-icon>
-                        <plus />
+                        <ElPlus />
                     </el-icon>
                     新建规划
                 </el-button>
@@ -110,10 +114,15 @@
                         </div>
                     </div>
                     <template #footer>
-                        <div class="card-footer">
+                        <div class="card-footer"
+                            style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="text-sm text-gray-500">
                                 创建时间: {{ formatDateTime(plan.createdAt) }}
                             </span>
+                            <el-button type="danger" size="small" @click="deletePlan(plan.id,$event)">
+                                <el-icon-delete />
+                                删除
+                            </el-button>
                         </div>
                     </template>
                 </el-card>
@@ -122,7 +131,7 @@
                 <el-empty description="暂无旅行规划" />
                 <el-button type="primary" class="mt-4" @click="showCreatePlanDialog = true">
                     <el-icon>
-                        <plus />
+                        <ElPlus />
                     </el-icon>
                     立即创建
                 </el-button>
@@ -168,7 +177,7 @@
 
     <script>
         const { createApp } = Vue
-        const { ElMessage } = ElementPlus
+        const { ElMessage, ElLoading, ElMessageBox } = ElementPlus
 
         createApp({
             data() {
@@ -262,18 +271,18 @@
                 // 跳转到规划详情页，先验证token有效性
                 goToDetail(planId) {
                     const token = localStorage.getItem('token');
-                    
+
                     // 如果没有token，直接跳转到登录页
                     if (!token) {
                         window.location.href = 'login.html';
                         return;
                     }
-                    
+
                     // 发送带token的请求到detail.html进行验证
                     const xhr = new XMLHttpRequest();
                     xhr.open('GET', `detail.html?id=${planId}`, true);
                     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-                    
+
                     xhr.onreadystatechange = () => {
                         if (xhr.readyState === 4) {
                             if (xhr.status === 200) {
@@ -287,7 +296,7 @@
                             }
                         }
                     };
-                    
+
                     xhr.send();
                 },
 
@@ -304,6 +313,16 @@
                         ElMessage.warning('开始日期不能晚于结束日期')
                         return
                     }
+
+                    // 创建全屏加载动画
+                    const loading = ElLoading.service({
+                        lock: true,
+                        text: '正在生成旅行计划，请稍候...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    })
+
+                    // 添加延迟确保用户能看到加载动画
+                    await new Promise(resolve => setTimeout(resolve, 500))
 
                     try {
                         const token = localStorage.getItem('token')
@@ -322,14 +341,17 @@
                             this.goToDetail(response.data.data.id)
                         } else {
                             ElMessage.error(response.data.message || '创建规划失败')
+                            loading.close()
                         }
                     } catch (error) {
+                        // 关闭加载动画
+                        loading.close()
                         console.error('创建规划失败:', error)
                         ElMessage.error('创建规划失败，请稍后重试')
-                        // 模拟创建成功，跳转到模拟ID的详情页
                         this.showCreatePlanDialog = false
-                        ElMessage.success('创建规划成功（模拟）')
-                        this.goToDetail('new-plan-id')
+                    } finally {
+                        // 确保无论成功或失败都关闭加载动画
+                        if (loading) loading.close()
                     }
                 },
 
@@ -365,6 +387,32 @@
                         'archived': '已归档'
                     }
                     return statusMap[status] || status
+                },
+
+                // 删除规划
+                async deletePlan(planId, event) {
+                    // 阻止事件冒泡，避免触发卡片的点击事件
+                    event.stopPropagation()
+                    await ElMessageBox.confirm('确定要删除这个规划吗?', '提示', {
+                        type: 'warning',
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消'
+                    })
+
+                    const token = localStorage.getItem('token')
+                    axios.delete(`/api/travel-plans/${planId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }).then(response => {
+                        if (response.data.code === 0) {
+                            ElMessage.success('删除规划成功')
+                            // 从本地列表中移除该规划
+                            this.plans = this.plans.filter(plan => plan.id !== planId)
+                        } else {
+                            ElMessage.error(response.data.message || '删除规划失败')
+                        }
+                    })
                 }
             }
         }).use(ElementPlus).mount('#app')

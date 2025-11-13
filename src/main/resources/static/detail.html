@@ -137,43 +137,26 @@
                     </div>
                 </div>
 
-                <!-- 行程安排（模拟数据） -->
+                <!-- 行程安排 -->
                 <div class="itinerary-section">
                     <h2>行程安排</h2>
-
-                    <!-- 第1天 -->
-                    <div class="day-section">
-                        <h3>第1天</h3>
-                        <div class="activity-item">
-                            <div class="activity-time">09:00 - 10:30</div>
-                            <div class="activity-title">抵达目的地</div>
-                            <div class="activity-description">抵达{{ plan.destination }}，办理入住手续</div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-time">12:00 - 14:00</div>
-                            <div class="activity-title">午餐</div>
-                            <div class="activity-description">品尝当地特色美食</div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-time">15:00 - 17:00</div>
-                            <div class="activity-title">城市游览</div>
-                            <div class="activity-description">参观城市中心，了解当地文化</div>
+                    <div v-if="itinerary && itinerary.plan && itinerary.plan.days" class="days-container">
+                        <div v-for="day in itinerary.plan.days" :key="day.day" class="day-section">
+                            <h3>{{ day.day }}. {{ day.day === 1 ? '抵达与探索' : '行程安排' }}</h3>
+                            <div v-for="(activity, index) in day.schedule" :key="index" class="activity-item">
+                                <div class="activity-time">{{ activity.time }}</div>
+                                <div class="activity-title">
+                                    <span>{{ activity.activity }}</span>
+                                    <el-tag size="small" type="primary" class="ml-2">{{ activity.location }}</el-tag>
+                                </div>
+                                <div class="activity-description">{{ activity.description }}</div>
+                                <div class="activity-description">{{ activity.cost }}</div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 第2天 -->
-                    <div class="day-section">
-                        <h3>第2天</h3>
-                        <div class="activity-item">
-                            <div class="activity-time">08:30 - 11:30</div>
-                            <div class="activity-title">主要景点游览</div>
-                            <div class="activity-description">参观当地著名景点</div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-time">14:00 - 16:00</div>
-                            <div class="activity-title">购物体验</div>
-                            <div class="activity-description">前往当地特色商业街</div>
-                        </div>
+                    <div v-else-if="!loading" class="no-itinerary">
+                        <el-empty description="暂无行程安排" />
+                        <el-button type="primary" class="mt-4" @click="fetchPlanDetail">重新生成行程</el-button>
                     </div>
                 </div>
             </div>
@@ -193,7 +176,8 @@
                 return {
                     loading: false,
                     planId: '',
-                    plan: null
+                    plan: null,
+                    itinerary: null // 添加行程数据字段
                 }
             },
             mounted() {
@@ -205,49 +189,43 @@
             },
             methods: {
                 // 获取规划详情
-                async fetchPlanDetail() {
-                    this.loading = true
-                    try {
-                        const token = localStorage.getItem('token')
-                        const response = await axios.get(`/api/travel-plans/${this.planId}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        })
+                fetchPlanDetail() {
+                    this.loading = true;
+                    const token = localStorage.getItem('token');
 
-                        if (response.data.code === 0) {
-                            this.plan = response.data.data
-                        } else {
-                            ElMessage.error(response.data.message || '获取规划详情失败')
-                            // 使用模拟数据
-                            this.useMockData()
+                    axios.get(`/api/travel-plans/${this.planId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
                         }
+                    })
+                        .then(response => {
+                            if (response.data.code !== 0) {
+                                ElMessage.error(response.data.message || '获取规划详情失败');
+                                return;
+                            }
+                            this.plan = response.data.data;
+                            this.itinerary = this.parsePlanJson(this.plan?.planJson);
+                        })
+                        .catch(error => {
+                            console.error('获取规划详情失败:', error);
+                            ElMessage.error('获取规划详情失败，请稍后重试');
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+
+                parsePlanJson(planJson) {
+                    if (!planJson) return null;
+                    try {
+                        return JSON.parse(planJson);
                     } catch (error) {
-                        console.error('获取规划详情失败:', error)
-                        ElMessage.error('获取规划详情失败，请稍后重试')
-                        // 使用模拟数据
-                        this.useMockData()
-                    } finally {
-                        this.loading = false
+                        console.error('解析行程数据失败:', error);
+                        ElMessage.warning('行程数据解析失败');
+                        return null;
                     }
                 },
 
-                // 使用模拟数据
-                useMockData() {
-                    this.plan = {
-                        id: this.planId,
-                        title: this.planId === 'new-plan-id' ? '新建旅行规划' : '日本东京5日游',
-                        destination: '东京',
-                        startDate: '2024-10-01',
-                        endDate: '2024-10-05',
-                        peopleCount: 2,
-                        budget: 10000,
-                        preferences: '喜欢美食、历史文化景点和购物',
-                        status: 'draft',
-                        createdAt: '2024-09-01T10:00:00',
-                        updatedAt: '2024-09-01T10:00:00'
-                    }
-                },
 
                 // 返回列表页
                 goBack() {
@@ -295,7 +273,7 @@
                     return statusMap[status] || status
                 }
             }
-        }).use(ElementPlus).mount('#app')
+        }).use(ElementPlus).mount('#app');
     </script>
 </body>
 
