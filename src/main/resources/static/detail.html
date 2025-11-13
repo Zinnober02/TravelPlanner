@@ -10,91 +10,11 @@
     <!-- 引入Element Plus -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
-    <!-- 引入Axios -->
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- 引入Element Plus图标 -->
     <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f5f7fa;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .plan-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-
-        .plan-title {
-            margin: 0;
-            color: #303133;
-        }
-
-        .plan-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .plan-info {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .day-section {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .activity-item {
-            padding: 15px;
-            border-left: 3px solid #409eff;
-            margin-bottom: 15px;
-            background-color: #f4f4f5;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .activity-time {
-            color: #606266;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .activity-title {
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .activity-description {
-            color: #606266;
-            font-size: 14px;
-        }
-    </style>
+    <!-- 引入axios -->
+    <script src="./js/axios.min.js"></script>
+    <link rel="stylesheet" href="./css/index.css">
 </head>
 
 <body>
@@ -106,6 +26,18 @@
                     <el-button type="primary" @click="goBack">
                         <el-icon><arrow-left /></el-icon>
                         返回列表
+                    </el-button>
+                    <el-button type="warning" @click="editPlan" :disabled="plan.status === 'archived'">
+                        <el-icon>
+                            <edit />
+                        </el-icon>
+                        编辑
+                    </el-button>
+                    <el-button type="danger" @click="deletePlan">
+                        <el-icon>
+                            <delete />
+                        </el-icon>
+                        删除
                     </el-button>
                 </div>
             </div>
@@ -165,11 +97,63 @@
                 <el-button type="primary" class="mt-4" @click="goBack">返回列表</el-button>
             </div>
         </div>
+        <!-- 编辑表单对话框 -->
+        <el-dialog title="编辑旅行规划" v-model="editDialogVisible" width="700px">
+            <el-form :model="editForm" :rules="editRules" ref="editFormRef" label-width="120px">
+                <el-form-item label="标题" prop="title">
+                    <el-input v-model="editForm.title" placeholder="请输入标题" />
+                </el-form-item>
+                <el-form-item label="目的地" prop="destination">
+                    <el-input v-model="editForm.destination" placeholder="请输入目的地" />
+                </el-form-item>
+                <el-form-item label="开始日期" prop="startDate">
+                    <el-date-picker v-model="editForm.startDate" type="date" placeholder="选择开始日期" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="结束日期" prop="endDate">
+                    <el-date-picker v-model="editForm.endDate" type="date" placeholder="选择结束日期" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="人数" prop="peopleCount">
+                    <el-input-number v-model="editForm.peopleCount" :min="1" :step="1" placeholder="请输入人数" />
+                </el-form-item>
+                <el-form-item label="预算">
+                    <el-input-number v-model="editForm.budget" :min="0" :step="100" placeholder="请输入预算" />
+                </el-form-item>
+                <el-form-item label="旅行偏好">
+                    <el-input v-model="editForm.preferences" type="textarea" rows="4" placeholder="请输入旅行偏好" />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-select v-model="editForm.status" placeholder="选择状态">
+                        <el-option label="草稿" value="draft" />
+                        <el-option label="已发布" value="published" />
+                        <el-option label="已归档" value="archived" />
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="editDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveEdit">保存</el-button>
+                </div>
+            </template>
+        </el-dialog>
+
+        <!-- 删除确认对话框 -->
+        <el-dialog title="删除确认" v-model="deleteDialogVisible" width="400px">
+            <div>确定要删除此旅行规划吗？此操作不可恢复。</div>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="deleteDialogVisible = false">取消</el-button>
+                    <el-button type="danger" @click="confirmDelete">确定</el-button>
+                </div>
+            </template>
+        </el-dialog>
     </div>
 
-    <script>
+    <script type="module">
+        import { getTravelPlanById, updateTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api.js';
+
         const { createApp } = Vue
-        const { ElMessage } = ElementPlus
+        const { ElMessage, ElLoading } = ElementPlus
 
         createApp({
             data() {
@@ -177,7 +161,27 @@
                     loading: false,
                     planId: '',
                     plan: null,
-                    itinerary: null // 添加行程数据字段
+                    itinerary: null, // 添加行程数据字段
+                    editDialogVisible: false,
+                    editForm: {},
+                    editRules: {
+                        title: [
+                            { required: true, message: '请输入标题', trigger: 'blur' }
+                        ],
+                        destination: [
+                            { required: true, message: '请输入目的地', trigger: 'blur' }
+                        ],
+                        startDate: [
+                            { required: true, message: '请选择开始日期', trigger: 'change' }
+                        ],
+                        endDate: [
+                            { required: true, message: '请选择结束日期', trigger: 'change' }
+                        ],
+                        peopleCount: [
+                            { required: true, message: '请输入人数', trigger: 'change' }
+                        ]
+                    },
+                    deleteDialogVisible: false
                 }
             },
             mounted() {
@@ -188,31 +192,94 @@
                 }
             },
             methods: {
-                // 获取规划详情
-                fetchPlanDetail() {
-                    this.loading = true;
-                    const token = localStorage.getItem('token');
+                // 编辑规划
+                editPlan() {
+                    if (this.plan.status === 'archived') {
+                        ElMessage.warning('已归档的旅行计划无法修改');
+                        return;
+                    }
+                    // 填充表单数据
+                    this.editForm = Object.assign({}, this.plan);
+                    // 转换日期格式
+                    this.editForm.startDate = new Date(this.editForm.startDate);
+                    this.editForm.endDate = new Date(this.editForm.endDate);
+                    this.editDialogVisible = true;
+                },
+                // 保存编辑
+                async saveEdit() {
+                    // 表单验证
+                    const formRef = this.$refs.editFormRef;
+                    if (!formRef) return;
 
-                    axios.get(`/api/travel-plans/${this.planId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
+                    // 检查是否有实际字段变化
+                    const hasChanges = this.checkFormChanges();
+                    if (!hasChanges) {
+                        ElMessage.info('没有任何字段变化，无需更新');
+                        this.editDialogVisible = false;
+                        return;
+                    }
+
+                    try {
+                        await formRef.validate();
+
+                        const loading = ElLoading.service({
+                            lock: true,
+                            text: '正在更新旅行计划，请稍候...',
+                            background: 'rgba(0, 0, 0, 0.7)'
+                        });
+
+                        // 发送更新请求
+                        const response = await updateTravelPlan(this.editForm);
+
+                        loading.close();
+
+                        if (response.data.code !== 0) {
+                            ElMessage.error(response.data.message || '更新失败');
+                            return;
                         }
-                    })
-                        .then(response => {
-                            if (response.data.code !== 0) {
-                                ElMessage.error(response.data.message || '获取规划详情失败');
-                                return;
-                            }
-                            this.plan = response.data.data;
-                            this.itinerary = this.parsePlanJson(this.plan?.planJson);
-                        })
-                        .catch(error => {
-                            console.error('获取规划详情失败:', error);
-                            ElMessage.error('获取规划详情失败，请稍后重试');
+
+                        ElMessage.success('更新成功');
+                        this.editDialogVisible = false;
+                        // 重新获取规划详情
+                        this.fetchPlanDetail();
+                    } catch (error) {
+                        console.error('保存失败:', error);
+                        if (error.response?.status === 401) {
+                            ElMessage.error('登录已过期，请重新登录');
+                            localStorage.removeItem('token');
+                            window.location.href = 'login.html';
+                        } else {
+                            ElMessage.error('保存失败，请稍后重试');
+                        }
+                    }
+                },
+
+                // 删除规划
+                deletePlan() {
+                    this.deleteDialogVisible = true;
+                },
+                // 确认删除
+                confirmDelete() {
+                    this.loading = true;
+                    deleteTravelPlan(this.planId)
+                        .then(() => {
+                            ElMessage.success('删除成功');
+                            this.goBack();
                         })
                         .finally(() => {
                             this.loading = false;
+                            this.deleteDialogVisible = false;
                         });
+                },
+                // 获取规划详情
+                fetchPlanDetail() {
+                    this.loading = true;
+                    getTravelPlanById(this.planId)
+                        .then(data => {
+                            this.plan = data;
+                            this.itinerary = this.parsePlanJson(data?.planJson);
+                        })
+                        .finally(() => this.loading = false);
                 },
 
                 parsePlanJson(planJson) {
@@ -229,21 +296,17 @@
 
                 // 返回列表页
                 goBack() {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'index.html', true);
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token'));
-                    xhr.onload = () => {
-                        if (xhr.status === 200) {
-                            window.location.href = 'index.html';
-                        } else {
-                            ElMessage.error('授权失败，请重新登录');
-                            localStorage.removeItem('token');
-                        }
-                    };
-                    xhr.onerror = () => {
-                        ElMessage.error('网络错误，请稍后重试');
-                    };
-                    xhr.send();
+                    redirectWithToken('index.html');
+                },
+
+                // 检查表单是否有实际变化
+                checkFormChanges() {
+                    // 比较表单字段与原字段是否有变化
+                    return JSON.stringify(this.editForm) !== JSON.stringify({
+                        ...this.plan,
+                        startDate: new Date(this.plan.startDate),
+                        endDate: new Date(this.plan.endDate)
+                    });
                 },
 
                 // 格式化日期

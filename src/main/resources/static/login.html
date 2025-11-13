@@ -11,66 +11,9 @@
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <!-- 引入Element Plus JS -->
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 500px;
-            overflow: hidden;
-        }
-
-        .login-header {
-            background: #4a5568;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .login-header h2 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-
-        .login-body {
-            padding: 30px;
-        }
-
-        .el-form-item {
-            margin-bottom: 24px;
-        }
-
-        .register-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .register-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <!-- 引入axios -->
+    <script src="./js/axios.min.js"></script>
+    <link rel="stylesheet" href="./css/login.css">
 </head>
 
 <body>
@@ -104,7 +47,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { login, redirectWithToken } from './js/api.js';
         const { createApp, ref, reactive } = Vue;
         const { ElMessage } = ElementPlus;
 
@@ -115,13 +59,10 @@
                     username: '',
                     password: ''
                 });
-
                 // 表单引用
                 const loginFormRef = ref(null);
-
                 // 加载状态
                 const loading = ref(false);
-
                 // 表单验证规则
                 const rules = {
                     username: [
@@ -131,71 +72,23 @@
                         { required: true, message: '密码不能为空', trigger: 'blur' }
                     ]
                 };
-
                 // 处理登录
-                const handleLogin = async () => {
+                const handleLogin = () => {
                     // 验证表单
-                    loginFormRef.value.validate(async (valid) => {
+                    loginFormRef.value.validate(valid => {
                         if (!valid) {
                             return;
                         }
-
                         // 设置加载状态
                         loading.value = true;
-
-                        try {
-                            // 发送登录请求
-                            const response = await fetch('/auth/login', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(loginForm)
-                            });
-
-                            if (!response.ok) {
-                                throw new Error('网络响应错误');
-                            }
-
-                            const data = await response.json();
-
-                            // 处理响应
-                            if (data.success) {
-                                // 登录成功，保存token
-                                if (data.data && data.data.token) {
-                                    localStorage.setItem('token', data.data.token);
-                                }
-
-                                ElMessage.success('登录成功！');
-
-                                // 创建一个XMLHttpRequest对象并设置Authorization头进行跳转
-                                // 这样可以确保跳转请求中携带token，通过JWT拦截器的验证
-                                const xhr = new XMLHttpRequest();
-                                xhr.open('GET', 'index.html', true);
-                                xhr.setRequestHeader('Authorization', 'Bearer ' + data.data.token);
-                                xhr.onload = () => {
-                                    if (xhr.status === 200) {
-                                        window.location.href = 'index.html';
-                                    } else {
-                                        ElMessage.error('授权失败，请重新登录');
-                                        localStorage.removeItem('token');
-                                    }
-                                };
-                                xhr.onerror = () => {
-                                    ElMessage.error('网络错误，请稍后重试');
-                                };
-                                xhr.send();
-                            } else {
-                                // 登录失败
-                                ElMessage.error(data.message || '登录失败，请重试');
-                            }
-                        } catch (error) {
-                            console.error('登录错误:', error);
-                            ElMessage.error('登录出错，请稍后重试');
-                        } finally {
-                            // 隐藏加载状态
-                            loading.value = false;
-                        }
+                        // 发送登录请求，data为AuthResponse{success，message，token，user，expireTime}
+                        login(loginForm).then(data => {
+                            // 登录成功，保存token
+                            localStorage.setItem('token', data.token);
+                            ElMessage.success('登录成功！');
+                            // 进行带token的页面跳转
+                            redirectWithToken('index.html');
+                        }).finally(() => loading.value = false)
                     });
                 };
 

@@ -11,66 +11,9 @@
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <!-- 引入Element Plus JS -->
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .register-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 500px;
-            overflow: hidden;
-        }
-
-        .register-header {
-            background: #4a5568;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .register-header h2 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-
-        .register-body {
-            padding: 30px;
-        }
-
-        .el-form-item {
-            margin-bottom: 24px;
-        }
-
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .login-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <!-- 引入axios -->
+    <script src="./js/axios.min.js"></script>
+    <link rel="stylesheet" href="./css/login.css">
 </head>
 
 <body>
@@ -116,7 +59,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { register } from './js/api.js';
         const { createApp, ref, reactive } = Vue;
         const { ElMessage } = ElementPlus;
 
@@ -179,50 +123,18 @@
                 // 处理注册
                 const handleRegister = async () => {
                     // 验证表单
-                    registerFormRef.value.validate(async (valid) => {
+                    registerFormRef.value.validate(valid => {
                         if (!valid) {
                             return;
                         }
-
                         // 设置加载状态
                         loading.value = true;
-
-                        try {
-                            // 发送注册请求
-                            const response = await fetch('/auth/register', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(registerForm)
-                            });
-
-                            if (!response.ok) {
-                                throw new Error('网络响应错误');
-                            }
-
-                            const data = await response.json();
-
-                            // 处理响应
-                            if (data.success) {
-                                // 注册成功，显示提示信息
-                                ElMessage.success('注册成功！即将跳转到登录页面...');
-
-                                // 2秒后跳转到登录页面
-                                setTimeout(() => {
-                                    window.location.href = 'login.html';
-                                }, 2000);
-                            } else {
-                                // 注册失败
-                                ElMessage.error(data.message || '注册失败，请重试');
-                            }
-                        } catch (error) {
-                            console.error('注册错误:', error);
-                            ElMessage.error('注册出错，请稍后重试');
-                        } finally {
-                            // 隐藏加载状态
-                            loading.value = false;
-                        }
+                        register(registerForm).then(data => {
+                            // 注册成功，显示提示信息
+                            ElMessage.success('注册成功！即将跳转到登录页面...');
+                            // 2秒后跳转到登录页面
+                            setTimeout(() => window.location.href = 'login.html', 2000);
+                        }).finally(() => loading.value = false);
                     });
                 };
 

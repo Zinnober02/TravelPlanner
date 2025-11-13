@@ -10,64 +10,9 @@
     <!-- 引入Element Plus -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
-    <!-- 引入Axios -->
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f5f7fa;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            margin: 0;
-            color: #303133;
-        }
-
-        .plan-card {
-            transition: all 0.3s ease;
-        }
-
-        .plans-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .plan-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .plan-date {
-            color: #606266;
-            font-size: 14px;
-            margin-right: 20px;
-        }
-
-        .plan-destination {
-            color: #67c23a;
-            font-weight: 500;
-        }
-    </style>
+    <!-- 引入axios -->
+    <script src="./js/axios.min.js"></script>
+    <link rel="stylesheet" href="./css/index.css">
 </head>
 
 <body>
@@ -175,7 +120,8 @@
         </el-dialog>
     </div>
 
-    <script>
+    <script type="module">
+        import { getTravelPlans, createTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api.js';
         const { createApp } = Vue
         const { ElMessage, ElLoading, ElMessageBox } = ElementPlus
 
@@ -204,114 +150,29 @@
                 // 获取用户规划列表
                 async fetchPlans() {
                     this.loading = true
-                    try {
-                        const token = localStorage.getItem('token')
-                        const response = await axios.get('/api/travel-plans', {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        })
-
-                        if (response.data.code === 0) {
-                            this.plans = response.data.data
-                        } else {
-                            ElMessage.error(response.data.message || '获取规划列表失败')
-                            // 如果后端API未实现，使用模拟数据
-                            this.useMockData()
-                        }
-                    } catch (error) {
-                        console.error('获取规划列表失败:', error)
-                        ElMessage.error('获取规划列表失败，请稍后重试')
-                        // 使用模拟数据
-                        this.useMockData()
-                    } finally {
-                        this.loading = false
-                    }
+                    getTravelPlans()
+                        .then(data => this.plans = data)
+                        .finally(() => this.loading = false)
                 },
 
-                // 使用模拟数据
-                useMockData() {
-                    this.plans = [
-                        {
-                            id: '1',
-                            title: '日本东京5日游',
-                            destination: '东京',
-                            startDate: '2024-10-01',
-                            endDate: '2024-10-05',
-                            peopleCount: 2,
-                            budget: 10000,
-                            status: 'draft',
-                            createdAt: '2024-09-01T10:00:00'
-                        },
-                        {
-                            id: '2',
-                            title: '上海周末游',
-                            destination: '上海',
-                            startDate: '2024-09-21',
-                            endDate: '2024-09-22',
-                            peopleCount: 1,
-                            budget: 2000,
-                            status: 'published',
-                            createdAt: '2024-09-10T15:30:00'
-                        },
-                        {
-                            id: '3',
-                            title: '北京文化之旅',
-                            destination: '北京',
-                            startDate: '2024-11-05',
-                            endDate: '2024-11-09',
-                            peopleCount: 3,
-                            budget: 8000,
-                            status: 'draft',
-                            createdAt: '2024-09-15T09:15:00'
-                        }
-                    ]
-                },
 
                 // 跳转到规划详情页，先验证token有效性
                 goToDetail(planId) {
-                    const token = localStorage.getItem('token');
-
-                    // 如果没有token，直接跳转到登录页
-                    if (!token) {
-                        window.location.href = 'login.html';
-                        return;
-                    }
-
-                    // 发送带token的请求到detail.html进行验证
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', `detail.html?id=${planId}`, true);
-                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-
-                    xhr.onreadystatechange = () => {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status === 200) {
-                                // 验证通过，执行页面跳转
-                                window.location.href = `detail.html?id=${planId}`;
-                            } else {
-                                // 验证失败，清除token并跳转到登录页
-                                console.error('Token验证失败，状态码:', xhr.status);
-                                localStorage.removeItem('token');
-                                window.location.href = 'login.html';
-                            }
-                        }
-                    };
-
-                    xhr.send();
+                    redirectWithToken(`detail.html?id=${planId}`);
                 },
 
                 // 创建新规划
-                async createPlan() {
+                createPlan() {
                     // 表单验证
                     if (!this.createPlanForm.title || !this.createPlanForm.destination) {
-                        ElMessage.warning('请填写必填项')
-                        return
+                        ElMessage.warning('请填写必填项');
+                        return;
                     }
 
                     if (this.createPlanForm.startDate && this.createPlanForm.endDate &&
                         new Date(this.createPlanForm.startDate) > new Date(this.createPlanForm.endDate)) {
-                        ElMessage.warning('开始日期不能晚于结束日期')
-                        return
+                        ElMessage.warning('开始日期不能晚于结束日期');
+                        return;
                     }
 
                     // 创建全屏加载动画
@@ -319,40 +180,18 @@
                         lock: true,
                         text: '正在生成旅行计划，请稍候...',
                         background: 'rgba(0, 0, 0, 0.7)'
+                    });
+
+                    createTravelPlan(this.createPlanForm).then(data => {
+                        ElMessage.success('创建规划成功');
+                        // 刷新规划列表
+                        this.fetchPlans();
+                        // 跳转到新建规划的详情页
+                        this.goToDetail(data.id);
+                    }).finally(() => {
+                        loading.close();
+                        this.showCreatePlanDialog = false;
                     })
-
-                    // 添加延迟确保用户能看到加载动画
-                    await new Promise(resolve => setTimeout(resolve, 500))
-
-                    try {
-                        const token = localStorage.getItem('token')
-                        const response = await axios.post('/api/travel-plans', this.createPlanForm, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        })
-
-                        if (response.data.code === 0) {
-                            ElMessage.success('创建规划成功')
-                            this.showCreatePlanDialog = false
-                            // 刷新规划列表
-                            this.fetchPlans()
-                            // 跳转到新建规划的详情页
-                            this.goToDetail(response.data.data.id)
-                        } else {
-                            ElMessage.error(response.data.message || '创建规划失败')
-                            loading.close()
-                        }
-                    } catch (error) {
-                        // 关闭加载动画
-                        loading.close()
-                        console.error('创建规划失败:', error)
-                        ElMessage.error('创建规划失败，请稍后重试')
-                        this.showCreatePlanDialog = false
-                    } finally {
-                        // 确保无论成功或失败都关闭加载动画
-                        if (loading) loading.close()
-                    }
                 },
 
                 // 格式化日期
@@ -390,28 +229,19 @@
                 },
 
                 // 删除规划
-                async deletePlan(planId, event) {
+                deletePlan(planId, event) {
                     // 阻止事件冒泡，避免触发卡片的点击事件
                     event.stopPropagation()
-                    await ElMessageBox.confirm('确定要删除这个规划吗?', '提示', {
+                    ElMessageBox.confirm('确定要删除这个规划吗?', '提示', {
                         type: 'warning',
                         confirmButtonText: '确定',
                         cancelButtonText: '取消'
-                    })
-
-                    const token = localStorage.getItem('token')
-                    axios.delete(`/api/travel-plans/${planId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    }).then(response => {
-                        if (response.data.code === 0) {
-                            ElMessage.success('删除规划成功')
-                            // 从本地列表中移除该规划
-                            this.plans = this.plans.filter(plan => plan.id !== planId)
-                        } else {
-                            ElMessage.error(response.data.message || '删除规划失败')
-                        }
+                    }).then(() => {
+                        return deleteTravelPlan(planId)
+                    }).then(() => {
+                        ElMessage.success('删除规划成功')
+                        // 从本地列表中移除该规划
+                        this.plans = this.plans.filter(plan => plan.id !== planId)
                     })
                 }
             }
