@@ -2,7 +2,7 @@ package com.travelplanner.auth;
 
 import com.travelplanner.common.UserContext;
 import com.travelplanner.exception.BusinessException;
-import com.travelplanner.exception.ErrorCode;
+import com.travelplanner.exception.StateCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -52,13 +52,13 @@ public class JWTInterceptor implements HandlerInterceptor {
         String token = extractToken(request);
         if (token == null) {
             log.warn("未提供JWT token: {}", requestUri);
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(StateCode.UNAUTHORIZED);
         }
 
         // 验证token
         if (!jwtUtil.isTokenValid(token)) {
             log.warn("无效的JWT token: {}", requestUri);
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(StateCode.UNAUTHORIZED);
         }
 
         // 将用户信息设置到上下文
@@ -70,7 +70,7 @@ public class JWTInterceptor implements HandlerInterceptor {
             log.debug("JWT验证通过，用户: {}, 请求: {}", username, requestUri);
         } catch (Exception e) {
             log.error("从token中提取用户信息失败: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(StateCode.UNAUTHORIZED);
         }
 
         return true;
