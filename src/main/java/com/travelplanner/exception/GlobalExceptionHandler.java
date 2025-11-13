@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         log.error("Not found: {}", e.getMessage(), e);
         // 确保响应内容类型为JSON
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        return Result.error(ErrorCode.NOT_FOUND);
+        return Result.error(StateCode.NOT_FOUND);
     }
 
     /**
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
         log.error("Method argument not valid: {}", e.getMessage(), e);
         // 确保响应内容类型为JSON
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        return Result.error(ErrorCode.PARAM_ERROR, e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
+        return Result.error(StateCode.PARAM_ERROR, e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
     }
 
     /**
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
         log.error("Http request method not supported: {}", e.getMessage(), e);
         // 确保响应内容类型为JSON
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        return Result.error(ErrorCode.FORBIDDEN);
+        return Result.error(StateCode.FORBIDDEN);
     }
 
     /**
@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
         log.error("Null pointer exception: {}", e.getMessage(), e);
         // 确保响应内容类型为JSON
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        return Result.error(ErrorCode.SYSTEM_ERROR, "空指针异常");
+        return Result.error(StateCode.SYSTEM_ERROR, "空指针异常");
     }
 
     /**
@@ -92,6 +92,6 @@ public class GlobalExceptionHandler {
         log.error("System exception: {}", e.getMessage(), e);
         // 确保响应内容类型为JSON
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        return Result.error(ErrorCode.SYSTEM_ERROR);
+        return Result.error(StateCode.SYSTEM_ERROR);
     }
 }
