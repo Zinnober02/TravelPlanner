@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="expires" content="0">
 
 <head>
     <meta charset="UTF-8">
@@ -12,6 +15,7 @@
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
     <!-- 引入Element Plus图标 -->
     <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.min.js"></script>
     <!-- 引入axios -->
     <script src="./js/axios.min.js"></script>
     <link rel="stylesheet" href="./css/index.css">
@@ -27,7 +31,7 @@
                         <el-icon><arrow-left /></el-icon>
                         返回列表
                     </el-button>
-                    <el-button type="warning" @click="editPlan" :disabled="plan.status === 'archived'">
+                    <el-button type="warning" @click="editPlan" :disabled="!plan || plan.status === 'archived'">
                         <el-icon>
                             <edit />
                         </el-icon>
@@ -72,19 +76,30 @@
                 <!-- 行程安排 -->
                 <div class="itinerary-section">
                     <h2>行程安排</h2>
-                    <div v-if="itinerary && itinerary.plan && itinerary.plan.days" class="days-container">
-                        <div v-for="day in itinerary.plan.days" :key="day.day" class="day-section">
-                            <h3>{{ day.day }}. {{ day.day === 1 ? '抵达与探索' : '行程安排' }}</h3>
-                            <div v-for="(activity, index) in day.schedule" :key="index" class="activity-item">
-                                <div class="activity-time">{{ activity.time }}</div>
-                                <div class="activity-title">
-                                    <span>{{ activity.activity }}</span>
-                                    <el-tag size="small" type="primary" class="ml-2">{{ activity.location }}</el-tag>
+                    <div v-if="itinerary && itinerary.days" class="days-container">
+                        <el-card v-for="day in itinerary.days" :key="day.day" class="day-section mb-4" shadow="hover">
+                            <template #header>
+                                <div class="card-header">
+                                    <h3 class="m-0">{{ day.day }}. {{ day.day === 1 ? '抵达与探索' : '行程安排' }}</h3>
                                 </div>
-                                <div class="activity-description">{{ activity.description }}</div>
-                                <div class="activity-description">{{ activity.cost }}</div>
-                            </div>
-                        </div>
+                            </template>
+                            <el-timeline>
+                                <el-timeline-item v-for="(activity, index) in day.schedule" :key="index"
+                                    :timestamp="activity.time" placement="top">
+                                    <div class="activity-content">
+                                        <div class="activity-title">
+                                            <span class="font-bold">{{ activity.activity }}</span>
+                                            <el-tag size="small" type="primary" class="ml-2">{{ activity.location
+                                                }}</el-tag>
+                                        </div>
+                                        <div class="activity-description mt-2">{{ activity.description }}</div>
+                                        <div class="activity-cost mt-1">
+                                            <el-tag size="small" type="success">{{ activity.cost }}</el-tag>
+                                        </div>
+                                    </div>
+                                </el-timeline-item>
+                            </el-timeline>
+                        </el-card>
                     </div>
                     <div v-else-if="!loading" class="no-itinerary">
                         <el-empty description="暂无行程安排" />
@@ -150,12 +165,12 @@
     </div>
 
     <script type="module">
-        import { getTravelPlanById, updateTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api.js';
+        import { getTravelPlanById, updateTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api-1.0.js';
 
         const { createApp } = Vue
         const { ElMessage, ElLoading } = ElementPlus
 
-        createApp({
+        const app = createApp({
             data() {
                 return {
                     loading: false,
@@ -194,6 +209,7 @@
             methods: {
                 // 编辑规划
                 editPlan() {
+                    if (!this.plan) return;
                     if (this.plan.status === 'archived') {
                         ElMessage.warning('已归档的旅行计划无法修改');
                         return;
@@ -206,52 +222,35 @@
                     this.editDialogVisible = true;
                 },
                 // 保存编辑
-                async saveEdit() {
+                saveEdit() {
                     // 表单验证
                     const formRef = this.$refs.editFormRef;
                     if (!formRef) return;
 
                     // 检查是否有实际字段变化
-                    const hasChanges = this.checkFormChanges();
-                    if (!hasChanges) {
+                    if (!this.checkFormChanges()) {
                         ElMessage.info('没有任何字段变化，无需更新');
                         this.editDialogVisible = false;
                         return;
                     }
 
-                    try {
-                        await formRef.validate();
-
-                        const loading = ElLoading.service({
+                    let loading;
+                    formRef.validate().then(() => {
+                        loading = ElLoading.service({
                             lock: true,
                             text: '正在更新旅行计划，请稍候...',
                             background: 'rgba(0, 0, 0, 0.7)'
-                        });
-
-                        // 发送更新请求
-                        const response = await updateTravelPlan(this.editForm);
-
-                        loading.close();
-
-                        if (response.data.code !== 0) {
-                            ElMessage.error(response.data.message || '更新失败');
-                            return;
-                        }
-
-                        ElMessage.success('更新成功');
-                        this.editDialogVisible = false;
+                        })
+                        return updateTravelPlan(this.editForm)
+                    }).then(() => {
+                        ElMessage.success('保存成功');
                         // 重新获取规划详情
-                        this.fetchPlanDetail();
-                    } catch (error) {
-                        console.error('保存失败:', error);
-                        if (error.response?.status === 401) {
-                            ElMessage.error('登录已过期，请重新登录');
-                            localStorage.removeItem('token');
-                            window.location.href = 'login.html';
-                        } else {
-                            ElMessage.error('保存失败，请稍后重试');
-                        }
-                    }
+                        return this.fetchPlanDetail();
+                    }).catch(err => ElMessage.error(err.message || '保存失败')
+                    ).finally(() => {
+                        this.editDialogVisible = false;
+                        if (loading) loading.close();
+                    });
                 },
 
                 // 删除规划
@@ -275,17 +274,18 @@
                 fetchPlanDetail() {
                     this.loading = true;
                     getTravelPlanById(this.planId)
-                        .then(data => {
-                            this.plan = data;
-                            this.itinerary = this.parsePlanJson(data?.planJson);
+                        .then(travelPlanDto => {
+                            this.plan = travelPlanDto;
+                            this.itinerary = this.parsePlanJson(travelPlanDto.planJson);
                         })
                         .finally(() => this.loading = false);
                 },
 
                 parsePlanJson(planJson) {
+                    console.log('原始行程数据:', planJson);
                     if (!planJson) return null;
                     try {
-                        return JSON.parse(planJson);
+                        return JSON.parse(planJson).plan;
                     } catch (error) {
                         console.error('解析行程数据失败:', error);
                         ElMessage.warning('行程数据解析失败');
@@ -336,7 +336,14 @@
                     return statusMap[status] || status
                 }
             }
-        }).use(ElementPlus).mount('#app');
+        });
+
+        // 注册Element Plus图标
+        for (const iconName in ElementPlusIconsVue) {
+            app.component(iconName, ElementPlusIconsVue[iconName])
+        }
+
+        app.use(ElementPlus).mount('#app');
     </script>
 </body>
 
