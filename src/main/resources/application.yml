@@ -19,6 +19,7 @@ spring:
   # Spring MVC配置
   mvc:
     static-path-pattern: /static/**
+    welcome-page-url: /static/login.html
   # 数据库配置
   datasource:
     url: jdbc:postgresql://rm-cn-u1p4isuws00055vo.rwlb.rds.aliyuncs.com:5432/travel_planner

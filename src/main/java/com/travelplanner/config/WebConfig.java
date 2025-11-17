@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -29,19 +30,18 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")  // 拦截所有请求
                 .excludePathPatterns(
+                        "/",
                         "/auth/register",
                         "/auth/login",
                         "/static/css/**",  // 只排除CSS资源
                         "/static/js/**",   // 只排除JS资源
                         "/static/images/**", // 只排除图片资源
                         "/static/register.html",
-                        "/static/login.html",
-                        "/static/index.html",
-                        "/static/detail.html"
+                        "/static/login.html"
                 );  // 排除不需要拦截的路径
     }
 
-    /**
+/**
      * 配置跨域
      */
     @Override
@@ -52,5 +52,14 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")  // 允许所有请求头
                 .allowCredentials(true)  // 允许携带凭证
                 .maxAge(3600);  // 预检请求的有效期，单位秒
+    }
+
+    /**
+ * 配置视图控制器
+ * 将根路径重定向到首页
+ */
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/").setViewName("redirect:/static/login.html");
     }
 }
