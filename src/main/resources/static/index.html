@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="expires" content="0">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +12,9 @@
     <!-- 引入Element Plus -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- 引入Element Plus图标 -->
+    <link rel="stylesheet" href="https://unpkg.com/@element-plus/icons-vue/dist/index.css">
+    <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.min.js"></script>
     <!-- 引入axios -->
     <script src="./js/axios.min.js"></script>
     <link rel="stylesheet" href="./css/index.css">
@@ -23,7 +28,7 @@
                 <h1>我的旅行规划</h1>
                 <el-button type="primary" @click="showCreatePlanDialog = true">
                     <el-icon>
-                        <ElPlus />
+                        <plus />
                     </el-icon>
                     新建规划
                 </el-button>
@@ -65,7 +70,9 @@
                                 创建时间: {{ formatDateTime(plan.createdAt) }}
                             </span>
                             <el-button type="danger" size="small" @click="deletePlan(plan.id,$event)">
-                                <el-icon-delete />
+                                <el-icon>
+                                    <Delete />
+                                </el-icon>
                                 删除
                             </el-button>
                         </div>
@@ -76,7 +83,7 @@
                 <el-empty description="暂无旅行规划" />
                 <el-button type="primary" class="mt-4" @click="showCreatePlanDialog = true">
                     <el-icon>
-                        <ElPlus />
+                        <plus />
                     </el-icon>
                     立即创建
                 </el-button>
@@ -114,23 +121,24 @@
             <template #footer>
                 <span class="dialog-footer">
                     <el-button @click="showCreatePlanDialog = false">取消</el-button>
-                    <el-button type="primary" @click="createPlan">确定</el-button>
+                    <el-button type="primary" @click="createPlan" :disabled="creatingPlan">确定</el-button>
                 </span>
             </template>
         </el-dialog>
     </div>
 
     <script type="module">
-        import { getTravelPlans, createTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api.js';
+        import { getTravelPlans, createTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api-1.0.js';
         const { createApp } = Vue
         const { ElMessage, ElLoading, ElMessageBox } = ElementPlus
 
-        createApp({
+        const app = createApp({
             data() {
                 return {
                     loading: false,
                     plans: [],
                     showCreatePlanDialog: false,
+                    creatingPlan: false,
                     createPlanForm: {
                         title: '',
                         destination: '',
@@ -175,6 +183,8 @@
                         return;
                     }
 
+                    this.creatingPlan = true; // 禁用按钮
+
                     // 创建全屏加载动画
                     const loading = ElLoading.service({
                         lock: true,
@@ -191,6 +201,7 @@
                     }).finally(() => {
                         loading.close();
                         this.showCreatePlanDialog = false;
+                        this.creatingPlan = false;
                     })
                 },
 
@@ -245,7 +256,12 @@
                     })
                 }
             }
-        }).use(ElementPlus).mount('#app')
+        })
+        // 注册Element Plus图标
+        for (const iconName in ElementPlusIconsVue) {
+            app.component(iconName, ElementPlusIconsVue[iconName])
+        }
+        app.use(ElementPlus).mount('#app')
     </script>
 </body>
 

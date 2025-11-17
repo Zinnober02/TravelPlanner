@@ -1,7 +1,7 @@
 // 创建axios实例
 const api = axios.create({
   baseURL: '/',
-  timeout: 10000, // 请求超时时间
+  timeout: 50000, // 请求超时时间增加到50秒
   headers: {
     'Content-Type': 'application/json'
   }
@@ -77,9 +77,6 @@ export const deleteTravelPlan = (planId) => {
 }
 
 // 获取单个旅行计划
-// 用于旅行计划详情页面
-// @param {number} planId - 旅行计划ID
-// @returns {Promise} - axios请求的Promise
 export const getTravelPlanById = (planId) => {
   return api.get(`/api/travel-plans/${planId}`)
 }
@@ -98,6 +95,7 @@ export const redirectWithToken = (url) => {
   const xhr = new XMLHttpRequest()
   xhr.open('GET', url, true)
   xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+  xhr.timeout = 50000 // 设置50秒超时
   xhr.onload = () => {
     if (xhr.status === 200) {
       window.location.href = url
@@ -113,6 +111,9 @@ export const redirectWithToken = (url) => {
   }
   xhr.onerror = () => {
     window.ElementPlus.ElMessage.error('网络错误，请稍后重试')
+  }
+  xhr.ontimeout = () => {
+    window.ElementPlus.ElMessage.error('请求超时，请稍后重试')
   }
   xhr.send()
 }
