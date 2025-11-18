@@ -65,4 +65,12 @@ public interface TravelPlanService {
      * @return 旅行计划实体
      */
     TravelPlan getPlanEntityById(UUID planId);
+
+    /**
+     * 根据查询文本生成旅行计划
+     * @param userId 用户ID
+     * @param query 查询文本
+     * @return 生成的旅行计划JSON
+     */
+    TravelPlanDTO createTravelPlanByQuery(UUID userId, String query);
 }

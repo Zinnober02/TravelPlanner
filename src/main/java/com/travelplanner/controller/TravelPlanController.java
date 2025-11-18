@@ -1,6 +1,7 @@
 package com.travelplanner.controller;
 
 import com.travelplanner.dto.CreateTravelPlanRequest;
+import com.travelplanner.dto.GenerateTravelPlanRequest;
 import com.travelplanner.dto.TravelPlanDTO;
 import com.travelplanner.dto.UpdateTravelPlanRequest;
 import com.travelplanner.service.TravelPlanService;
@@ -31,6 +32,16 @@ public class TravelPlanController {
         UUID userId = UserContext.getCurrentUserId();
         TravelPlanDTO travelPlan = travelPlanService.createTravelPlan(userId, request);
         return Result.success(travelPlan);
+    }
+
+    /**
+     * 根据语音查询生成旅行计划
+     */
+    @PostMapping("/generate")
+    public Result<TravelPlanDTO> generateTravelPlan(@Valid @RequestBody GenerateTravelPlanRequest request) {
+        UUID userId = UserContext.getCurrentUserId();
+        TravelPlanDTO generatedPlan = travelPlanService.createTravelPlanByQuery(userId, request.getQuery());
+        return Result.success(generatedPlan);
     }
     
     /**

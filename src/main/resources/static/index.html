@@ -3,6 +3,7 @@
 <meta http-equiv="pragma" content="no-cache">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="expires" content="0">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,43 +93,62 @@
 
         <!-- 新建规划弹窗 -->
         <el-dialog v-model="showCreatePlanDialog" title="新建旅行规划" width="50%">
-            <el-form ref="createPlanForm" :model="createPlanForm" label-width="100px">
-                <el-form-item label="规划标题" prop="title" required>
-                    <el-input v-model="createPlanForm.title" placeholder="请输入规划标题" />
-                </el-form-item>
-                <el-form-item label="目的地" prop="destination" required>
-                    <el-input v-model="createPlanForm.destination" placeholder="请输入目的地" />
-                </el-form-item>
-                <el-form-item label="开始日期" prop="startDate" required>
-                    <el-date-picker v-model="createPlanForm.startDate" type="date" placeholder="选择开始日期"
-                        style="width: 100%" />
-                </el-form-item>
-                <el-form-item label="结束日期" prop="endDate" required>
-                    <el-date-picker v-model="createPlanForm.endDate" type="date" placeholder="选择结束日期"
-                        style="width: 100%" />
-                </el-form-item>
-                <el-form-item label="同行人数" prop="peopleCount">
-                    <el-input-number v-model="createPlanForm.peopleCount" :min="1" :max="20" />
-                </el-form-item>
-                <el-form-item label="预算金额" prop="budget">
-                    <el-input-number v-model="createPlanForm.budget" :min="0" :step="100" />
-                </el-form-item>
-                <el-form-item label="旅行偏好" prop="preferences">
-                    <el-input v-model="createPlanForm.preferences" type="textarea"
-                        placeholder="请输入旅行偏好，如：喜欢美食、历史文化、自然风光等" :rows="3" />
-                </el-form-item>
-            </el-form>
+            <el-tabs v-model="activeTab" type="border-card">
+                <el-tab-pane label="语音输入" name="voice">
+                    <div class="voice-input-container">
+                        <el-input v-model="voiceInput" type="textarea" placeholder="语音识别结果将显示在这里，您可以编辑后提交" :rows="8" style="margin-bottom: 16px;">
+                    </el-input>
+                        <div style="text-align: center;">
+                            <el-button type="primary" @click="toggleRecording"
+                                :icon="recording ? 'Stop' : 'Microphone'" size="large">
+                                {{ recording ? '停止录音' : '开始录音' }}
+                            </el-button>
+                        </div>
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane label="表单填写" name="form">
+                    <el-form ref="createPlanForm" :model="createPlanForm" label-width="100px">
+                        <el-form-item label="规划标题" prop="title" required>
+                            <el-input v-model="createPlanForm.title" placeholder="请输入规划标题" />
+                        </el-form-item>
+                        <el-form-item label="目的地" prop="destination" required>
+                            <el-input v-model="createPlanForm.destination" placeholder="请输入目的地" />
+                        </el-form-item>
+                        <el-form-item label="开始日期" prop="startDate" required>
+                            <el-date-picker v-model="createPlanForm.startDate" type="date" placeholder="选择开始日期"
+                                style="width: 100%" />
+                        </el-form-item>
+                        <el-form-item label="结束日期" prop="endDate" required>
+                            <el-date-picker v-model="createPlanForm.endDate" type="date" placeholder="选择结束日期"
+                                style="width: 100%" />
+                        </el-form-item>
+                        <el-form-item label="同行人数" prop="peopleCount">
+                            <el-input-number v-model="createPlanForm.peopleCount" :min="1" :max="20" />
+                        </el-form-item>
+                        <el-form-item label="预算金额" prop="budget">
+                            <el-input-number v-model="createPlanForm.budget" :min="0" :step="100" />
+                        </el-form-item>
+                        <el-form-item label="旅行偏好" prop="preferences">
+                            <el-input v-model="createPlanForm.preferences" type="textarea"
+                                placeholder="请输入旅行偏好，如：喜欢美食、历史文化、自然风光等" :rows="3" />
+                        </el-form-item>
+                    </el-form>
+                </el-tab-pane>
+            </el-tabs>
             <template #footer>
                 <span class="dialog-footer">
                     <el-button @click="showCreatePlanDialog = false">取消</el-button>
-                    <el-button type="primary" @click="createPlan" :disabled="creatingPlan">确定</el-button>
+                    <el-button type="primary" @click="submitPlan"
+                        :disabled="creatingPlan || (activeTab === 'voice' && !voiceInput)">
+                        {{ activeTab === 'form' ? '创建计划' : '生成计划' }}
+                    </el-button>
                 </span>
             </template>
         </el-dialog>
     </div>
 
     <script type="module">
-        import { getTravelPlans, createTravelPlan, deleteTravelPlan, redirectWithToken } from './js/api-1.0.js';
+        import { getTravelPlans, createTravelPlan, deleteTravelPlan, redirectWithToken, createTravelPlanByQuery } from './js/api-1.0.js';
         const { createApp } = Vue
         const { ElMessage, ElLoading, ElMessageBox } = ElementPlus
 
@@ -138,6 +158,14 @@
                     loading: false,
                     plans: [],
                     showCreatePlanDialog: false,
+                    // 新建规划标签页
+                    activeTab: 'voice',
+                    // 语音输入内容
+                    voiceInput: '',
+                    // 录音状态
+                    recording: false,
+                    // 语音识别实例
+                    speechRecognition: null,
                     creatingPlan: false,
                     createPlanForm: {
                         title: '',
@@ -156,17 +184,78 @@
             },
             methods: {
                 // 获取用户规划列表
-                async fetchPlans() {
+                fetchPlans() {
                     this.loading = true
                     getTravelPlans()
                         .then(data => this.plans = data)
                         .finally(() => this.loading = false)
                 },
 
-
                 // 跳转到规划详情页，先验证token有效性
                 goToDetail(planId) {
                     redirectWithToken(`detail.html?id=${planId}`);
+                },
+
+                // 初始化语音识别
+                initSpeechRecognition() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        ElMessage.warning('您的浏览器不支持语音识别功能');
+                        return;
+                    }
+
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    this.speechRecognition = new SpeechRecognition();
+                    this.speechRecognition.continuous = true;
+                    this.speechRecognition.interimResults = true;
+
+                    this.speechRecognition.onresult = event => {
+                        let interimTranscript = '';
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const transcript = event.results[i][0].transcript;
+                            if (event.results[i].isFinal) {
+                                this.voiceInput += transcript;
+                            } else {
+                                interimTranscript += transcript;
+                            }
+                        }
+                        // 可以在 interimTranscript 中处理临时结果
+                    };
+
+                    this.speechRecognition.onerror = event => {
+                        console.error('语音识别错误:', event.error);
+                        this.recording = false;
+                        ElMessage.error('语音识别出错，请重试');
+                    };
+
+                },
+
+                // 切换录音状态
+                toggleRecording() {
+                    if (!this.speechRecognition) {
+                        this.initSpeechRecognition();
+                        if (!this.speechRecognition) return;
+                    }
+
+                    if (this.recording) {
+                        this.speechRecognition.stop();
+                        this.recording = false;
+                        ElMessage.success('录音已停止');
+                    } else {
+                        // 清除之前的内容
+                        this.voiceInput = '';
+                        this.speechRecognition.start();
+                        this.recording = true;
+                        ElMessage.success('开始录音，请说出您的旅行计划...');
+                    }
+                },
+
+                // 提交计划
+                submitPlan() {
+                    if (this.activeTab === 'form') {
+                        this.createPlan();
+                    } else {
+                        this.generatePlanFromVoice();
+                    }
                 },
 
                 // 创建新规划
@@ -198,6 +287,40 @@
                         this.fetchPlans();
                         // 跳转到新建规划的详情页
                         this.goToDetail(data.id);
+                    }).catch(err => {
+                        ElMessage.error(err.response?.data?.message || '生成计划失败');
+                    }).finally(() => {
+                        loading.close();
+                        this.showCreatePlanDialog = false;
+                        this.creatingPlan = false;
+                    })
+                },
+
+                // 根据语音输入生成计划
+                generatePlanFromVoice() {
+                    this.creatingPlan = true;
+
+                    // 创建全屏加载动画
+                    const loading = ElLoading.service({
+                        lock: true,
+                        text: '正在解析语音输入并生成计划...',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+
+                    // 创建请求数据
+                    const requestData = {
+                        query: this.voiceInput
+                    };
+
+                    createTravelPlanByQuery(requestData).then(data => {
+                        ElMessage.success('创建规划成功');
+                        // 刷新规划列表
+                        this.fetchPlans();
+                        // 跳转到新建规划的详情页
+                        this.goToDetail(data.id);
+                    }).catch(err => {
+                        console.error('生成计划失败:', err);
+                        ElMessage.error(err.response?.data?.message || err.message || '生成计划失败');
                     }).finally(() => {
                         loading.close();
                         this.showCreatePlanDialog = false;

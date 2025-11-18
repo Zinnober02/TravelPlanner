@@ -26,7 +26,7 @@ api.interceptors.response.use(
   response => {
     // 检查业务是否成功
     if (response.data && response.data.code != 0) {
-      return Promise.reject(response.data)
+      return Promise.reject(response.data.message)
     }
     // 业务成功，直接返回数据部分，方便调用者使用
     return response.data.data
@@ -38,7 +38,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = 'login.html'
     } else {
-      return Promise.reject(error)
+      return Promise.reject(error.response?.data?.message || '请求失败')
     }
   }
 )
@@ -64,6 +64,11 @@ export const getTravelPlans = () => {
 // 创建旅行计划
 export const createTravelPlan = (data) => {
   return api.post('/api/travel-plans', data)
+}
+
+// 语音输入创建旅行计划
+export const createTravelPlanByQuery = (data) => {
+  return api.post('/api/travel-plans/generate', data)
 }
 
 // 更新旅行计划
