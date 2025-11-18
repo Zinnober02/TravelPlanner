@@ -9,6 +9,34 @@
 - Maven 3.6+
 - PostgreSQL 17+
 
+## Docker部署
+
+### 环境要求
+- Docker 20.10+ 
+
+### 拉取镜像
+```bash
+docker pull zinnober02/travel-planner:latest
+```
+
+### 运行容器
+```bash
+docker run -d -p 8080:8080 zinnober02/travel-planner:latest
+```
+
+### 访问地址
+容器运行成功后，可以通过以下地址访问：
+
+**基础URL**: http://localhost:8080
+
+已经注册了用户名：zinnober，密码：123456，并有6个旅行计划。
+
+也可注册新用户，首次登录后，会弹出弹窗要求填写阿里云百炼的API Key，也可以在首页右上角设置中修改API key。
+
+语音输入功能要求chrome或者edge浏览器，因为使用了chrome的语音识别API，当然也可以手动输入文字作为识别结果（语音输入后，用户也可以编辑）。
+
+当前已经实现了注册登录功能、旅行计划的创建、根据语音输入生成旅行计划、获取用户的旅行计划列表、根据ID获取旅行计划详情、更新旅行计划、删除旅行计划等功能。
+
 ### 安装和运行
 
 1. 克隆项目
@@ -17,15 +45,12 @@ git clone https://github.com/Zinnober02/TravelPlanner
 cd travel-planner
 ```
 
-2. 配置数据库
-确保PostgreSQL数据库已启动，并在`application.yml`中配置正确的数据库连接信息。
-
-3. 构建项目
+2. 构建项目
 ```bash
 mvn clean package
 ```
 
-4. 运行应用
+3. 运行应用
 ```bash
 java -jar target/travel-planner-1.0.0.jar
 ```
