@@ -44,12 +44,6 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# 应用自定义配置
-# 阿里云百炼AI配置
-alibaba:
-  dashscope:
-    api-key: sk-c41e49014a8c4e7ba511f4a9c3a3999d
-
 # 用户认证配置
 auth:
   token-header: Authorization
