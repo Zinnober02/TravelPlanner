@@ -50,17 +50,6 @@ alibaba:
   dashscope:
     api-key: sk-c41e49014a8c4e7ba511f4a9c3a3999d
 
-# 科大讯飞语音识别配置
-iflytek:
-  app-id: your-iflytek-app-id
-  api-key: your-iflytek-api-key
-  api-secret: your-iflytek-api-secret
-
-# 地图服务配置
-map:
-  service: gaode  # 或 baidu
-  api-key: your-map-api-key
-
 # 用户认证配置
 auth:
   token-header: Authorization

@@ -19,7 +19,7 @@ public interface TravelPlanService {
      * @param request 创建请求
      * @return 创建的旅行计划
      */
-    TravelPlanDTO createTravelPlan(UUID userId, CreateTravelPlanRequest request);
+    TravelPlanDTO createTravelPlan(UUID userId, CreateTravelPlanRequest request, String apiKey);
     
     /**
      * 获取用户的旅行计划列表
@@ -42,7 +42,7 @@ public interface TravelPlanService {
      * @param request 更新请求
      * @return 更新后的旅行计划
      */
-    TravelPlanDTO updateTravelPlan(UUID userId, UpdateTravelPlanRequest request);
+    TravelPlanDTO updateTravelPlan(UUID userId, UpdateTravelPlanRequest request, String apiKey);
     
     /**
      * 删除旅行计划
@@ -70,7 +70,8 @@ public interface TravelPlanService {
      * 根据查询文本生成旅行计划
      * @param userId 用户ID
      * @param query 查询文本
-     * @return 生成的旅行计划JSON
+     * @param apiKey 阿里云百炼API Key
+     * @return 旅行计划DTO
      */
-    TravelPlanDTO createTravelPlanByQuery(UUID userId, String query);
+    TravelPlanDTO createTravelPlanByQuery(UUID userId, String query, String apiKey);
 }

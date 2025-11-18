@@ -28,9 +28,9 @@ public class TravelPlanController {
      * 创建旅行计划
      */
     @PostMapping
-    public Result<TravelPlanDTO> createTravelPlan(@Valid @RequestBody CreateTravelPlanRequest request) {
+    public Result<TravelPlanDTO> createTravelPlan(@Valid @RequestBody CreateTravelPlanRequest request, @RequestHeader(value = "X-Api-Key", required = true) String apiKey) {
         UUID userId = UserContext.getCurrentUserId();
-        TravelPlanDTO travelPlan = travelPlanService.createTravelPlan(userId, request);
+        TravelPlanDTO travelPlan = travelPlanService.createTravelPlan(userId, request, apiKey);
         return Result.success(travelPlan);
     }
 
@@ -38,9 +38,9 @@ public class TravelPlanController {
      * 根据语音查询生成旅行计划
      */
     @PostMapping("/generate")
-    public Result<TravelPlanDTO> generateTravelPlan(@Valid @RequestBody GenerateTravelPlanRequest request) {
+    public Result<TravelPlanDTO> generateTravelPlan(@Valid @RequestBody GenerateTravelPlanRequest request, @RequestHeader(value = "X-Api-Key", required = true) String apiKey) {
         UUID userId = UserContext.getCurrentUserId();
-        TravelPlanDTO generatedPlan = travelPlanService.createTravelPlanByQuery(userId, request.getQuery());
+        TravelPlanDTO generatedPlan = travelPlanService.createTravelPlanByQuery(userId, request.getQuery(), apiKey);
         return Result.success(generatedPlan);
     }
     
@@ -68,9 +68,9 @@ public class TravelPlanController {
      * 更新旅行计划
      */
     @PutMapping
-    public Result<TravelPlanDTO> updateTravelPlan(@Valid @RequestBody UpdateTravelPlanRequest request) {
+    public Result<TravelPlanDTO> updateTravelPlan(@Valid @RequestBody UpdateTravelPlanRequest request, @RequestHeader(value = "X-Api-Key", required = true) String apiKey) {
         UUID userId = UserContext.getCurrentUserId();
-        TravelPlanDTO plan = travelPlanService.updateTravelPlan(userId, request);
+        TravelPlanDTO plan = travelPlanService.updateTravelPlan(userId, request, apiKey);
         return Result.success(plan);
     }
     

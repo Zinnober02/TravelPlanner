@@ -27,12 +27,20 @@
             <!-- 顶部导航 -->
             <div class="header">
                 <h1>我的旅行规划</h1>
-                <el-button type="primary" @click="showCreatePlanDialog = true">
-                    <el-icon>
-                        <plus />
-                    </el-icon>
-                    新建规划
-                </el-button>
+                <div style="display: flex; gap: 10px;">
+                    <el-button type="default" @click="openApiKeyDialog">
+                        <el-icon>
+                            <Setting />
+                        </el-icon>
+                        设置
+                    </el-button>
+                    <el-button type="primary" @click="handleCreatePlan">
+                        <el-icon>
+                            <plus />
+                        </el-icon>
+                        新建规划
+                    </el-button>
+                </div>
             </div>
 
             <!-- 规划列表 -->
@@ -96,11 +104,12 @@
             <el-tabs v-model="activeTab" type="border-card">
                 <el-tab-pane label="语音输入" name="voice">
                     <div class="voice-input-container">
-                        <el-input v-model="voiceInput" type="textarea" placeholder="语音识别结果将显示在这里，您可以编辑后提交" :rows="8" style="margin-bottom: 16px;">
-                    </el-input>
+                        <el-input v-model="voiceInput" type="textarea" placeholder="语音识别结果将显示在这里，您可以编辑后提交" :rows="8"
+                            style="margin-bottom: 16px;">
+                        </el-input>
                         <div style="text-align: center;">
-                            <el-button type="primary" @click="toggleRecording"
-                                :icon="recording ? 'Stop' : 'Microphone'" size="large">
+                            <el-button type="primary" @click="toggleRecording" :icon="recording ? 'Stop' : 'Microphone'"
+                                size="large">
                                 {{ recording ? '停止录音' : '开始录音' }}
                             </el-button>
                         </div>
@@ -145,6 +154,26 @@
                 </span>
             </template>
         </el-dialog>
+
+        <!-- API Key输入弹窗 -->
+        <el-dialog v-model="showApiKeyDialog" title="设置阿里云百炼API Key" width="50%">
+            <el-form ref="apiKeyForm" :model="apiKeyForm" label-width="150px">
+                <el-form-item label="API Key" prop="apiKey" required>
+                    <el-input v-model="apiKeyForm.apiKey" placeholder="请输入您的阿里云百炼API Key" type="password" />
+                    <el-input__suffix>
+                        <el-button @click="toggleApiKeyVisibility" size="small">
+                            {{ showApiKey ? '隐藏' : '显示' }}
+                        </el-button>
+                    </el-input__suffix>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="showApiKeyDialog = false">取消</el-button>
+                    <el-button type="primary" @click="saveApiKey">保存</el-button>
+                </span>
+            </template>
+        </el-dialog>
     </div>
 
     <script type="module">
@@ -158,6 +187,15 @@
                     loading: false,
                     plans: [],
                     showCreatePlanDialog: false,
+                    // API Key输入弹窗
+                    showApiKeyDialog: false,
+                    apiKey: '',
+                    // API Key表单
+                    apiKeyForm: {
+                        apiKey: ''
+                    },
+                    // API Key可见状态
+                    showApiKey: false,
                     // 新建规划标签页
                     activeTab: 'voice',
                     // 语音输入内容
@@ -181,9 +219,66 @@
             mounted() {
                 // 页面加载时获取用户规划列表
                 this.fetchPlans()
+                // 检查是否已有API Key，如果没有则弹出输入框
+                this.checkApiKey()
             },
             methods: {
+                // 检查API Key
+                checkApiKey() {
+                    // 检查localStorage中是否已有API Key
+                    const savedApiKey = localStorage.getItem('apiKey')
+                    if (savedApiKey) {
+                        this.apiKey = savedApiKey
+                        this.apiKeyForm.apiKey = savedApiKey
+                    } else {
+                        // 如果没有则弹出输入框
+                        this.showApiKeyDialog = true
+                    }
+                },
+
+                // 打开API Key设置对话框
+                openApiKeyDialog() {
+                    // 将当前apiKey赋值给表单
+                    this.apiKeyForm.apiKey = this.apiKey;
+                    // 显示对话框
+                    this.showApiKeyDialog = true;
+                },
+
+                // 切换API Key可见性
+                toggleApiKeyVisibility() {
+                    this.showApiKey = !this.showApiKey
+                    // 延迟修改input类型以确保DOM已更新
+                    setTimeout(() => {
+                        const input = document.querySelector('.api-key-input input')
+                        if (input) {
+                            input.type = this.showApiKey ? 'text' : 'password'
+                        }
+                    }, 0)
+                },
+
+                // 保存API Key
+                saveApiKey() {
+                    if (!this.apiKeyForm.apiKey) {
+                        ElMessage.warning('请输入API Key')
+                        return
+                    }
+                    // 保存到localStorage
+                    localStorage.setItem('apiKey', this.apiKeyForm.apiKey)
+                    this.apiKey = this.apiKeyForm.apiKey
+                    this.showApiKeyDialog = false
+                    ElMessage.success('API Key保存成功')
+                },
+
                 // 获取用户规划列表
+                handleCreatePlan() {
+                    const apiKey = localStorage.getItem('apiKey')
+                    if (!apiKey) {
+                        this.showApiKeyDialog = true
+                    } else {
+                        this.showCreatePlanDialog = true
+                    }
+                },
+
                 fetchPlans() {
                     this.loading = true
                     getTravelPlans()

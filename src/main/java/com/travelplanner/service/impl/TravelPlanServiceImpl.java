@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,12 +53,9 @@ public class TravelPlanServiceImpl implements TravelPlanService {
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @Value("${alibaba.dashscope.api-key}")
-    private String apiKey;
-
     @Override
     @Transactional
-    public TravelPlanDTO createTravelPlan(UUID userId, CreateTravelPlanRequest request) {
+    public TravelPlanDTO createTravelPlan(UUID userId, CreateTravelPlanRequest request, String apiKey) {
         TravelPlan travelPlan = new TravelPlan();
         BeanUtils.copyProperties(request, travelPlan);
 
@@ -74,7 +70,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
 
         // 调用阿里云百炼生成旅行规划
         var query = getQueryText(request);
-        String generatedPlan = generateTravelPlanWithAI(query);
+        String generatedPlan = generateTravelPlanWithAI(query, apiKey);
         travelPlan.setPlanJson(generatedPlan);
 
         // 保存到数据库
@@ -86,7 +82,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
 
     @Override
     @Transactional
-    public TravelPlanDTO createTravelPlanByQuery(UUID userId, String query) {
+    public TravelPlanDTO createTravelPlanByQuery(UUID userId, String query, String apiKey) {
         TravelPlan travelPlan = new TravelPlan();
 
         log.info("创建旅行计划, 用户ID: {}, 请求内容: {}", userId, query);
@@ -104,7 +100,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
         LocalDateTime now = LocalDateTime.now();
         query += "注意规划的日期要在" + now.format(formatter) + "之后至少一天";
         log.info("调用阿里云百炼生成旅行规划, 修正后的用户输入内容: {}", query);
-        String generatedPlan = generateTravelPlanWithAI(query);
+        String generatedPlan = generateTravelPlanWithAI(query, apiKey);
         travelPlan.setPlanJson(generatedPlan);
 
         // 从生成的JSON中提取计划详情
@@ -178,7 +174,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
      * @param request 旅行计划请求
      * @return 生成的旅行规划JSON
      */
-    private String generateTravelPlanWithAI(String query) {
+    private String generateTravelPlanWithAI(String query, String apiKey) {
         try {
             // 设置API密钥
             Constants.apiKey = apiKey;
@@ -318,7 +314,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
 
     @Override
     @Transactional
-    public TravelPlanDTO updateTravelPlan(UUID userId, UpdateTravelPlanRequest request) {
+    public TravelPlanDTO updateTravelPlan(UUID userId, UpdateTravelPlanRequest request, String apiKey) {
         TravelPlan plan = travelPlanRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("旅行计划不存在"));
 
@@ -392,7 +388,7 @@ public class TravelPlanServiceImpl implements TravelPlanService {
 
             // 调用AI生成新的行程
             var query = getQueryText(aiRequest);
-            String newPlanJson = generateTravelPlanWithAI(query);
+            String newPlanJson = generateTravelPlanWithAI(query, apiKey);
 
             // 更新planJson字段
             updatedPlan.setPlanJson(newPlanJson);

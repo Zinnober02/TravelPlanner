@@ -16,6 +16,10 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token)
       config.headers.Authorization = `Bearer ${token}`
+    // 检查是否有API Key，如果有则添加到请求头
+    const apiKey = localStorage.getItem('apiKey')
+    if (apiKey)
+      config.headers['X-Api-Key'] = apiKey
     return config
   },
   error => Promise.reject(error)
