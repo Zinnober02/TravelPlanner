@@ -293,55 +293,185 @@
 
                 // 初始化语音识别
                 initSpeechRecognition() {
-                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                        ElMessage.warning('您的浏览器不支持语音识别功能');
+                    // 检查浏览器是否支持Web Audio API和WebSocket
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        ElMessage.warning('您的浏览器不支持音频采集功能');
                         return;
                     }
-
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    this.speechRecognition = new SpeechRecognition();
-                    this.speechRecognition.continuous = true;
-                    this.speechRecognition.interimResults = true;
-
-                    this.speechRecognition.onresult = event => {
-                        let interimTranscript = '';
-                        for (let i = event.resultIndex; i < event.results.length; i++) {
-                            const transcript = event.results[i][0].transcript;
-                            if (event.results[i].isFinal) {
-                                this.voiceInput += transcript;
-                            } else {
-                                interimTranscript += transcript;
-                            }
-                        }
-                        // 可以在 interimTranscript 中处理临时结果
-                    };
-
-                    this.speechRecognition.onerror = event => {
-                        console.error('语音识别错误:', event.error);
-                        this.recording = false;
-                        ElMessage.error('语音识别出错，请重试');
-                    };
-
+                    
+                    if (!window.WebSocket) {
+                        ElMessage.warning('您的浏览器不支持WebSocket功能');
+                        return;
+                    }
+                    
+                    // 初始化音频上下文和WebSocket连接
+                    console.log('初始化语音识别');
+                    try {
+                        // 直接创建音频上下文而不是设置为null
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                            sampleRate: 16000  // 讯飞API要求16kHz采样率
+                        });
+                    } catch (e) {
+                        console.error('创建音频上下文失败:', e);
+                        ElMessage.error('无法创建音频上下文');
+                        return;
+                    }
+                    
+                    this.mediaStream = null;
+                    this.processor = null;
+                    this.websocket = null;
+                    this.recognitionBuffer = [];
                 },
 
                 // 切换录音状态
-                toggleRecording() {
-                    if (!this.speechRecognition) {
+                async toggleRecording() {
+                    if (!this.audioContext) {
                         this.initSpeechRecognition();
-                        if (!this.speechRecognition) return;
+                        if (!this.audioContext) return;
                     }
-
+                    console.log('切换录音状态');
                     if (this.recording) {
-                        this.speechRecognition.stop();
-                        this.recording = false;
-                        ElMessage.success('录音已停止');
+                        this.stopRecording();
+                        console.log('录音已停止');
                     } else {
+                        console.log('录音正在启动');
+                        await this.startRecording();
+                    }
+                },
+                
+                // 开始录音
+                async startRecording() {
+                    try {
                         // 清除之前的内容
                         this.voiceInput = '';
-                        this.speechRecognition.start();
+                        this.recognitionBuffer = [];
+                        
+                        // 获取用户媒体
+                        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        
+                        // 检查音频上下文是否已暂停，如果是则恢复
+                        if (this.audioContext.state === 'suspended') {
+                            await this.audioContext.resume();
+                        }
+                        
+                        // 创建媒体流源
+                        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+                        
+                        // 创建脚本处理器
+                        this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                        
+                        // 连接音频处理链
+                        source.connect(this.processor);
+                        this.processor.connect(this.audioContext.destination);
+                        
+                        // 处理音频数据
+                        this.processor.onaudioprocess = (event) => {
+                            const inputData = event.inputBuffer.getChannelData(0);
+                            // 转换为16位PCM格式
+                            const pcmData = this.floatTo16BitPCM(inputData);
+                            // 发送音频数据到WebSocket
+                            if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                                this.websocket.send(pcmData);
+                            }
+                        };
+                        
+                        // 建立WebSocket连接
+                        this.connectWebSocket();
+                        
                         this.recording = true;
+                        console.log('录音已开始');
                         ElMessage.success('开始录音，请说出您的旅行计划...');
+                    } catch (error) {
+                        console.error('录音启动失败:', error);
+                        ElMessage.error('无法访问麦克风，请检查权限设置');
                     }
+                },
+                
+                // 停止录音
+                stopRecording() {
+                    // 发送结束标志
+                    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                        this.websocket.send(JSON.stringify({ type: 'end' }));
+                    }
+                    
+                    // 停止音频处理
+                    if (this.processor) {
+                        this.processor.disconnect();
+                        this.processor = null;
+                    }
+                    
+                    // 关闭媒体流
+                    if (this.mediaStream) {
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                        this.mediaStream = null;
+                    }
+                    
+                    // 关闭音频上下文
+                    if (this.audioContext) {
+                        this.audioContext.close();
+                        this.audioContext = null;
+                    }
+                    
+                    this.recording = false;
+                    ElMessage.success('录音已停止，正在识别...');
+                },
+                
+                // 连接WebSocket
+                connectWebSocket() {
+                    // 获取当前用户的token
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        ElMessage.error('请先登录');
+                        return;
+                    }
+                    
+                    // 构建WebSocket URL，包含token作为查询参数
+                    const wsUrl = `ws://localhost:8080/ws/speech?token=${token}`;
+                    
+                    // 创建WebSocket连接
+                    this.websocket = new WebSocket(wsUrl);
+                    
+                    // 连接打开时发送开始标志
+                    this.websocket.onopen = () => {
+                        this.websocket.send(JSON.stringify({ type: 'start' }));
+                    };
+                    
+                    // 接收消息
+                    this.websocket.onmessage = (event) => {
+                        const message = JSON.parse(event.data);
+                        
+                        if (message.type === 'result') {
+                            // 更新语音输入内容
+                            this.voiceInput = message.text;
+                        } else if (message.type === 'error') {
+                            console.error('语音识别错误:', message.message);
+                            ElMessage.error(`语音识别错误: ${message.message}`);
+                            this.stopRecording();
+                        }
+                    };
+                    
+                    // 连接关闭
+                    this.websocket.onclose = () => {
+                        console.log('WebSocket连接已关闭');
+                        this.websocket = null;
+                    };
+                    
+                    // 连接错误
+                    this.websocket.onerror = (error) => {
+                        console.error('WebSocket错误:', error);
+                        ElMessage.error('语音识别服务连接失败');
+                        this.stopRecording();
+                    };
+                },
+                
+                // 将浮点音频数据转换为16位PCM
+                floatTo16BitPCM(input) {
+                    const output = new Int16Array(input.length);
+                    for (let i = 0; i < input.length; i++) {
+                        const s = Math.max(-1, Math.min(1, input[i]));
+                        output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    }
+                    return output.buffer;
                 },
 
                 // 提交计划

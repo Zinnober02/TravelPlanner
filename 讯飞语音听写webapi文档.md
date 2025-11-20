@@ -344,21 +344,21 @@ data
 
 ```json
 {  
-    "common":{
-       // 公共请求参数
-       "app_id":"123456"  
-    },
-    "business":{
-        "language":"zh_cn",
-        "domain":"iat",
-        "accent":"mandarin"
-    },
-    "data":{
-            "status":0,
-            "format":"audio/L16;rate=16000",
-            "encoding":"raw",
-            "audio":"exSI6ICJlbiIsCgkgICAgInBvc2l0aW9uIjogImZhbHNlIgoJf..."    
-    }
+  "common": {
+      // 公共请求参数
+    "app_id": "123456"  
+  },
+  "business": {
+    "language": "zh_cn",
+    "domain": "iat",
+    "accent": "mandarin"
+  },
+  "data": {
+    "status": 0,
+    "format": "audio/L16;rate=16000",
+    "encoding": "raw",
+    "audio": "exSI6ICJlbiIsCgkgICAgInBvc2l0aW9uIjogImZhbHNlIgoJf..."    
+  }
 }
 ```
 
@@ -366,9 +366,9 @@ data
 
 ```json
 {
-    "data":{
-      "status":2
-        }
+  "data": {
+    "status": 2
+  }
 }
 ```
 

@@ -82,6 +82,15 @@ public class JWTUtil {
     }
 
     /**
+     * 验证token是否有效（别名方法）
+     * @param token JWT token
+     * @return 是否有效
+     */
+    public boolean validateToken(String token) {
+        return isTokenValid(token);
+    }
+
+    /**
      * 获取token过期时间
      * @param token JWT token
      * @return 过期时间

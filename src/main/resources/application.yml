@@ -29,7 +29,7 @@ spring:
   # JPA配置
   jpa:
     hibernate:
-      ddl-auto: update  # 生产环境应改为validate
+      ddl-auto: validate  # 仅验证模式不修改
     show-sql: true
     properties:
       hibernate:
@@ -49,3 +49,10 @@ auth:
   token-header: Authorization
   token-prefix: "Bearer "
   token-expire: 86400000
+
+# 讯飞语音识别配置
+xunfei:
+  app-id: ea4f4a9d
+  api-secret: OTMxMjU1MmE2NmI3MmUyNmQxNjJiNWRi
+  api-key: 66ed0cadb85577717f41d6bd2b282dcc
+  host: https://iat-api.xfyun.cn/v2/iat
