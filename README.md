@@ -6,6 +6,7 @@
 
 ### 环境要求
 - Docker 20.10+ 
+- 确保ubuntu麦克风可用，若不可用，可在主机编译运行。
 
 ### 拉取镜像
 ```bash
@@ -40,10 +41,12 @@ docker run -d -p 8080:8080 zinnober02/travel-planner:latest
 
 ### 安装和运行
 
+#### 分步执行
+
 1. 克隆项目
 ```bash
 git clone https://github.com/Zinnober02/TravelPlanner
-cd travel-planner
+cd TravelPlanner
 ```
 
 2. 构建项目
@@ -54,6 +57,18 @@ mvn clean package
 3. 运行应用
 ```bash
 java -jar target/travel-planner-1.0.0.jar
+```
+
+#### 一键复制版本
+
+**Bash版本**（适用于Linux/macOS）：
+```bash
+git clone https://github.com/Zinnober02/TravelPlanner && cd TravelPlanner && mvn clean package && java -jar target/travel-planner-1.0.0.jar
+```
+
+**PowerShell版本**（适用于Windows）：
+```powershell
+git clone https://github.com/Zinnober02/TravelPlanner; cd TravelPlanner; mvn clean package; java -jar target/travel-planner-1.0.0.jar
 ```
 
 ### 访问地址
@@ -71,12 +86,12 @@ java -jar target/travel-planner-1.0.0.jar
 #### 旅行计划 API
 
 - 创建旅行计划: POST http://localhost:8080/api/travel-plans
-- 根据语音输入生成旅行计划: POST http://localhost:8080/api/travel-plans/generate
 - 获取用户的旅行计划列表: GET http://localhost:8080/api/travel-plans
 - 根据ID获取旅行计划详情: GET http://localhost:8080/api/travel-plans/{id}
 - 根据目的地搜索旅行计划: GET http://localhost:8080/api/travel-plans/search?destination={destination}
 - 更新旅行计划: PUT http://localhost:8080/api/travel-plans
 - 删除旅行计划: DELETE http://localhost:8080/api/travel-plans/{id}
+- 语音识别WebSocket: ws://localhost:8080/ws/speech?token={JWT_TOKEN}
 
 #### 行程详情 API
 
